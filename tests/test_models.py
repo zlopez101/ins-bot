@@ -1,4 +1,4 @@
-from data_models.models import CptCode
+from data_models.models import CptCode, Checker
 
 
 def test_CptCode():
@@ -12,3 +12,21 @@ def test_CptCode():
 def test_InsuranceExceptions():
     # test attributes and methods
     pass
+
+
+class TestChecker:
+    def test_checker(self):
+        checker = Checker()
+        checker.verify_code("90750")
+        assert hasattr(checker, "code")
+        assert isinstance(checker.code, dict)
+        assert checker.code["name"] == "zoster vaccine, recombinant"
+
+
+def test_checker():
+
+    check = Checker()
+    check.verify_code("90750")
+    assert hasattr(check, "code")
+    assert isinstance(check.code, dict)
+    assert check.code["name"] == "zoster vaccine, recombinant"

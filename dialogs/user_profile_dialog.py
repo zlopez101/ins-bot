@@ -23,10 +23,13 @@ from data_models.models import CptCode
 
 from errors import NotValidInput
 
+class InsuranceSpecificationDialog(ComponentDialog):
+    pass
 
-class UserProfileDialog(ComponentDialog):
+
+class InsuranceDialog(ComponentDialog):
     def __init__(self, user_state: UserState):
-        super(UserProfileDialog, self).__init__(UserProfileDialog.__name__)
+        super(InsuranceDialog, self).__init__(InsuranceDialog.__name__)
 
         self.user_profile_accessor = user_state.create_property("UserProfile")
 
@@ -34,10 +37,8 @@ class UserProfileDialog(ComponentDialog):
             WaterfallDialog(
                 WaterfallDialog.__name__,
                 [
-                    self.insurance_step,
-                    # self.insurance_step_confirmation, still needs to be done
                     self.cpt_step,
-                    # self.age_step, still needs to be done
+                    self.insurance_step,
                     self.confirmation_step,
                     self.inquiry_results_step,
                 ],
@@ -63,7 +64,7 @@ class UserProfileDialog(ComponentDialog):
         """
         # WaterfallStep always finishes with the end of the Waterfall or with another dialog;
         # here it is a Prompt Dialog. Running a prompt here means the next WaterfallStep will
-        # be run when the users response is received.
+        # be run when the users response is received./
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(prompt=MessageFactory.text("Please enter the insurance")),
@@ -127,7 +128,7 @@ class UserProfileDialog(ComponentDialog):
             DialogTurnResult: [description]
         """
         try:
-            step_context.values["vaccine"] = CptCode.from_user_request(
+            step_context.values["cpt_code"] = CptCode.from_user_request(
                 step_context.result
             )
         except NotValidInput:
@@ -139,7 +140,7 @@ class UserProfileDialog(ComponentDialog):
             ConfirmPrompt.__name__,
             PromptOptions(
                 prompt=MessageFactory.text(
-                    f"You are checking if {step_context.values['vaccine'].name.capitalize()} cpt code {step_context.values['vaccine'].cpt_code} is covered with the {step_context.values['insurance_submitted']} insurance. Is this correct?"
+                    f"You are checking if {step_context.values['cpt_code'].name.capitalize()} cpt code {step_context.values['cpt_code'].cpt_code} is covered with the {step_context.values['insurance_submitted']} insurance. Is this correct?"
                 ),
             ),
         )

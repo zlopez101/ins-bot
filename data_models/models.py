@@ -4,6 +4,58 @@ import json
 from errors.error import NotValidInput
 
 
+def load_json(file: str) -> dict:
+    """generic loading of json resources
+
+    Args:
+        file (str): filename to load, either codes or insurance
+
+    Returns:
+        list: the list of either codes or insurance
+    """
+    with open("data/" + file, "r") as fp:
+        _file = json.load(fp)
+        # strange stripping b/c all at once will remove the "s" in codes
+        return _file[file.strip("json").strip(".")]
+
+
+class Checker:
+    def __init__(self):
+        self.codes = load_json("codes.json")
+        self.insurnaces = load_json("insurances.json")
+
+    def verify_code(self, code: str) -> bool:
+        """Return true if code is acceptable, otherwise false
+
+        Args:
+            code (int): user input code
+
+        Returns:
+            bool: Valid Code
+        """
+        if code.isnumeric():
+            self.code = self.codes.get(code)
+        else:
+            # user supplied invalid literal, maybe supplied a string
+            pass
+        return True if hasattr(self, code) else False
+
+    def verify_insurance(self, insurance_string: str) -> bool:
+        """Return true if the insurance is accepted, otherwise false
+
+        Args:
+            insurance_string (str): user inputted insurance
+
+        Returns:
+            bool: valid insurance
+        """
+
+        pass
+
+    def supply_drop_down(self) -> dict:
+        pass
+
+
 @dataclass
 class CptCode:
     name: str
@@ -56,7 +108,7 @@ class CptCode:
         elif isinstance(user_input, str) and user_input.isalpha():
             # building iterable
             [
-                (vaccine["id"], vaccine["Trade Names", vaccine["Abbreviations"]])
+                (vaccine["id"], vaccine["Trade Names"], vaccine["Abbreviations"])
                 for vaccine in codes
             ]
             # user gave us a valid str
@@ -80,4 +132,8 @@ class InsuranceException:
     @classmethod
     def from_db(cls, azure_response: dict):
         return cls(azure_response["id"], azure_response["exceptions"])
+
+
+if __name__ == "__main__":
+    check = Checker()
 

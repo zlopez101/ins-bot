@@ -20,7 +20,7 @@ from botbuilder.core.integration import aiohttp_error_middleware
 from botbuilder.schema import Activity, ActivityTypes
 
 from config import DefaultConfig
-from dialogs import UserProfileDialog
+from dialogs import InsuranceDialog
 from bots import DialogBot
 
 CONFIG = DefaultConfig()
@@ -73,7 +73,7 @@ CONVERSATION_STATE = ConversationState(MEMORY)
 USER_STATE = UserState(MEMORY)
 
 # create main dialog and bot
-DIALOG = UserProfileDialog(USER_STATE)
+DIALOG = InsuranceDialog(USER_STATE)
 BOT = DialogBot(CONVERSATION_STATE, USER_STATE, DIALOG)
 
 
