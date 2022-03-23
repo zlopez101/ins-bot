@@ -14,14 +14,17 @@ from botbuilder.dialogs.prompts import (
     ChoicePrompt,
     ConfirmPrompt,
     PromptOptions,
+    ActivityPrompt,
 )
 from botbuilder.dialogs.choices import Choice
 from botbuilder.core import MessageFactory, UserState
+from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
 
 from data_models import UserProfile, perform_insurance_cpt_check
 from data_models.models import CptCode
 
 from errors import NotValidInput
+
 
 class InsuranceSpecificationDialog(ComponentDialog):
     pass
@@ -37,6 +40,7 @@ class InsuranceDialog(ComponentDialog):
             WaterfallDialog(
                 WaterfallDialog.__name__,
                 [
+                    # self.choices_step,
                     self.cpt_step,
                     self.insurance_step,
                     self.confirmation_step,
@@ -45,11 +49,44 @@ class InsuranceDialog(ComponentDialog):
             )
         )
         self.add_dialog(TextPrompt(TextPrompt.__name__))
-        self.add_dialog(NumberPrompt(NumberPrompt.__name__,))
+        self.add_dialog(NumberPrompt(NumberPrompt.__name__))
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
         self.add_dialog(ConfirmPrompt(ConfirmPrompt.__name__))
 
         self.initial_dialog_id = WaterfallDialog.__name__
+
+    async def choices_step(
+        self, step_context: WaterfallStepContext
+    ) -> DialogTurnResult:
+        reply = MessageFactory.text(
+            "Hey! I help automate insurance verification requests. Send me a message to get started!"
+        )
+        reply.suggested_actions = SuggestedActions(
+            actions=[
+                CardAction(
+                    title="Red",
+                    type=ActionTypes.im_back,
+                    value="Red",
+                    image="https://via.placeholder.com/20/FF0000?text=R",
+                    image_alt_text="R",
+                ),
+                CardAction(
+                    title="Yellow",
+                    type=ActionTypes.im_back,
+                    value="Yellow",
+                    image="https://via.placeholder.com/20/FFFF00?text=Y",
+                    image_alt_text="Y",
+                ),
+                CardAction(
+                    title="Blue",
+                    type=ActionTypes.im_back,
+                    value="Blue",
+                    image="https://via.placeholder.com/20/0000FF?text=B",
+                    image_alt_text="B",
+                ),
+            ]
+        )
+        return await step_context.prompt(reply)
 
     async def insurance_step(
         self, step_context: WaterfallStepContext
@@ -65,6 +102,7 @@ class InsuranceDialog(ComponentDialog):
         # WaterfallStep always finishes with the end of the Waterfall or with another dialog;
         # here it is a Prompt Dialog. Running a prompt here means the next WaterfallStep will
         # be run when the users response is received./
+        # print(step_context.values)
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(prompt=MessageFactory.text("Please enter the insurance")),
@@ -83,7 +121,7 @@ class InsuranceDialog(ComponentDialog):
         Returns:
             DialogTurnResult: [description]
         """
-        # step_context.values['insuranc_submitted'] = step_context.result.value
+        step_context.values["payer_name_submitted"] = step_context.result.value
         pass
 
     async def cpt_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
@@ -96,8 +134,8 @@ class InsuranceDialog(ComponentDialog):
             DialogTurnResult: To be passed to the `age_step` function. 
         """
         # store the name of the insurance here
-        step_context.values["insurance_submitted"] = step_context.result
-
+        # step_context.values["insurance_submitted"] = step_context.result
+        print(step_context.values)
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(
@@ -141,7 +179,7 @@ class InsuranceDialog(ComponentDialog):
             PromptOptions(
                 prompt=MessageFactory.text(
                     f"You are checking if {step_context.values['cpt_code'].name.capitalize()} cpt code {step_context.values['cpt_code'].cpt_code} is covered with the {step_context.values['insurance_submitted']} insurance. Is this correct?"
-                ),
+                )
             ),
         )
 

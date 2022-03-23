@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+from datetime import datetime
 from typing import List
 from urllib.parse import quote
 
@@ -28,6 +29,7 @@ class NetworkStatus(Enum):
     INN = "INN"
     OON = "OON"
     NON = "NON"
+
 
 @dataclass
 class Base:
@@ -59,15 +61,46 @@ class CPT_code(Base):
     age_minimum: int = 0
     age_maximum: int = 1000
 
+
 @dataclass
 class Insurance:
 
+    id: str
     insurance_name: str
     payer_name: str
     financial_class: FinancialClass
-    plan_type: PlanType
     network_status: NetworkStatus
     referral_required: str
+    plan_type: PlanType = None
+
+    @classmethod
+    def from_api(cls, data: dict):
+        """data from the api comes in the form
+
+
+        {
+           "id": "ASDFDSAFSDJH",
+           "fields": {
+               "other": "thing"
+           }
+        }
+
+        Requires a special constructor for the dataclass    
+
+        Args:
+            data (dict): raw API response
+
+        Returns:
+            Insurance Instance
+        """
+        return cls(data.get("id"), **data.pop("fields"))
+
+
+@dataclass
+class InsuranceFromAPI(Insurance):
+    @classmethod
+    def from_api(cls, data):
+        return cls(**data["fields"])  # , id=data["id"])
 
 
 class EncodedParameter:
