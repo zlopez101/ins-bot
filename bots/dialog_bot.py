@@ -1,10 +1,21 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from botbuilder.core import ActivityHandler, ConversationState, TurnContext, UserState
+from botbuilder.core import (
+    ActivityHandler,
+    ConversationState,
+    TurnContext,
+    UserState,
+    MessageFactory,
+)
 from botbuilder.dialogs import Dialog
 from helpers.dialog_helper import DialogHelper
 from botbuilder.core.channel_service_handler import ChannelAccount
+from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
+
+
+from botbuilder.core import StatePropertyAccessor, TurnContext
+from botbuilder.dialogs import Dialog, DialogSet, DialogTurnStatus
 
 
 class DialogBot(ActivityHandler):
@@ -56,6 +67,35 @@ class DialogBot(ActivityHandler):
     ):
         for member_added in members_added:
             if member_added.id != turn_context.activity.recipient.id:
-                await turn_context.send_activity(
-                    "Hey there, I'm able to answer quick questions about vaccine coverage by specific insurances. Send me any message to get started!"
+                reply = MessageFactory.text(
+                    "Hey! I help automate insurance verification requests. Send me a message to get started!"
                 )
+
+                reply.suggested_actions = SuggestedActions(
+                    actions=[
+                        CardAction(
+                            title="Red",
+                            type=ActionTypes.im_back,
+                            value="Red",
+                            image="https://via.placeholder.com/20/FF0000?text=R",
+                            image_alt_text="R",
+                        ),
+                        CardAction(
+                            title="Yellow",
+                            type=ActionTypes.im_back,
+                            value="Yellow",
+                            image="https://via.placeholder.com/20/FFFF00?text=Y",
+                            image_alt_text="Y",
+                        ),
+                        CardAction(
+                            title="Blue",
+                            type=ActionTypes.im_back,
+                            value="Blue",
+                            image="https://via.placeholder.com/20/0000FF?text=B",
+                            image_alt_text="B",
+                        ),
+                    ]
+                )
+
+                return await turn_context.send_activity(reply)
+
