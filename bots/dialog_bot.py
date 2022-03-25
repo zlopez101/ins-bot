@@ -12,12 +12,8 @@ from botbuilder.dialogs import Dialog
 from helpers.dialog_helper import DialogHelper
 from botbuilder.core.channel_service_handler import ChannelAccount
 from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
-
-
-from botbuilder.core import StatePropertyAccessor, TurnContext
 from botbuilder.dialogs import Dialog, DialogSet, DialogTurnStatus
-
-
+from botbuilder.core import StatePropertyAccessor, TurnContext
 class DialogBot(ActivityHandler):
     """
     This Bot implementation can run any type of Dialog. The use of type parameterization is to allows multiple
@@ -45,6 +41,7 @@ class DialogBot(ActivityHandler):
             raise Exception("[DialogBot]: Missing parameter. dialog is required")
 
         self.conversation_state = conversation_state
+
         self.user_state = user_state
         self.dialog = dialog
 
@@ -68,34 +65,14 @@ class DialogBot(ActivityHandler):
         for member_added in members_added:
             if member_added.id != turn_context.activity.recipient.id:
                 reply = MessageFactory.text(
-                    "Hey! I help automate insurance verification requests. Send me a message to get started!"
-                )
+                    """Hey! I help automate insurance verification workflows. I can:
 
-                reply.suggested_actions = SuggestedActions(
-                    actions=[
-                        CardAction(
-                            title="Red",
-                            type=ActionTypes.im_back,
-                            value="Red",
-                            image="https://via.placeholder.com/20/FF0000?text=R",
-                            image_alt_text="R",
-                        ),
-                        CardAction(
-                            title="Yellow",
-                            type=ActionTypes.im_back,
-                            value="Yellow",
-                            image="https://via.placeholder.com/20/FFFF00?text=Y",
-                            image_alt_text="Y",
-                        ),
-                        CardAction(
-                            title="Blue",
-                            type=ActionTypes.im_back,
-                            value="Blue",
-                            image="https://via.placeholder.com/20/0000FF?text=B",
-                            image_alt_text="B",
-                        ),
-                    ]
-                )
+* verify if a cpt code (vaccine) is covered by insurance
+* verify if the patient's plan requires referrals                    
+* retrieve a list of coverages associated with a given payer
 
+Send me any message to get started!
+                    """
+                )
                 return await turn_context.send_activity(reply)
 

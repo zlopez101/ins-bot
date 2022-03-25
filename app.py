@@ -12,7 +12,6 @@ from botbuilder.core import (
     BotFrameworkAdapter,
     BotFrameworkAdapterSettings,
     ConversationState,
-    MemoryStorage,
     TurnContext,
     UserState,
 )
@@ -20,8 +19,10 @@ from botbuilder.core.integration import aiohttp_error_middleware
 from botbuilder.schema import Activity, ActivityTypes
 
 from config import DefaultConfig
-from dialogs import InsuranceDialog
+from dialogs import CPT_Code_Verification_Dialog
 from bots import DialogBot
+
+from botbuilder.azure import CosmosDbPartitionedStorage, CosmosDbPartitionedConfig
 
 CONFIG = DefaultConfig()
 
@@ -68,12 +69,20 @@ async def on_error(context: TurnContext, error: Exception):
 ADAPTER.on_turn_error = on_error
 
 # Create MemoryStorage, UserState and ConversationState
-MEMORY = MemoryStorage()
+cosmos_config = CosmosDbPartitionedConfig(
+    cosmos_db_endpoint=CONFIG.COSMOS_DB_URI,
+    auth_key=CONFIG.COSMOS_DB_PRIMARY_KEY,
+    database_id=CONFIG.COSMOS_DB_DATABASE_ID,
+    container_id=CONFIG.COSMOS_DB_CONTAINER_ID,
+    compatibility_mode=False,
+)
+
+MEMORY = CosmosDbPartitionedStorage(cosmos_config)
 CONVERSATION_STATE = ConversationState(MEMORY)
 USER_STATE = UserState(MEMORY)
 
 # create main dialog and bot
-DIALOG = InsuranceDialog(USER_STATE)
+DIALOG = CPT_Code_Verification_Dialog(CONVERSATION_STATE)
 BOT = DialogBot(CONVERSATION_STATE, USER_STATE, DIALOG)
 
 

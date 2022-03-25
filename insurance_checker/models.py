@@ -32,7 +32,38 @@ class NetworkStatus(Enum):
 
 
 @dataclass
+class ConversationData:
+
+    payer_name: str = None
+    coverage_name: str = None
+    cpt_code: int = None
+
+
+@dataclass
 class Base:
+    @classmethod
+    def from_api(cls, data: dict):
+        """data from the api comes in the form
+
+
+        {
+           "id": "ASDFDSAFSDJH",
+           "fields": {
+               "other": "thing"
+           }
+        }
+
+        Requires a special constructor for the dataclass    
+
+        Args:
+            data (dict): raw API response
+
+        Returns:
+            Insurance Instance
+        """
+        assert isinstance(data["fields"]["payer_name"], str), f"{data}"
+        return cls(data.get("id"), **data.pop("fields"))
+
     @staticmethod
     def custom_factory(data):
         def convert_value(obj):
@@ -63,7 +94,7 @@ class CPT_code(Base):
 
 
 @dataclass
-class Insurance:
+class Insurance(Base):
 
     id: str
     insurance_name: str
@@ -73,27 +104,11 @@ class Insurance:
     referral_required: str
     plan_type: PlanType = None
 
-    @classmethod
-    def from_api(cls, data: dict):
-        """data from the api comes in the form
 
+@dataclass
+class Payer(Base):
 
-        {
-           "id": "ASDFDSAFSDJH",
-           "fields": {
-               "other": "thing"
-           }
-        }
-
-        Requires a special constructor for the dataclass    
-
-        Args:
-            data (dict): raw API response
-
-        Returns:
-            Insurance Instance
-        """
-        return cls(data.get("id"), **data.pop("fields"))
+    payer_name: str
 
 
 @dataclass
