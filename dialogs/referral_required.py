@@ -20,11 +20,6 @@ from botbuilder.dialogs.choices import Choice
 from botbuilder.core import MessageFactory, UserState
 from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
 
-from data_models import UserProfile, perform_insurance_cpt_check
-from data_models.models import CptCode
-
-from errors import NotValidInput
-
 
 class Referral_Required_Dialog(ComponentDialog):
     def __init__(self, user_state: UserState):  # not sure why user state is needed

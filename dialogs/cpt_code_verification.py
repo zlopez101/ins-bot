@@ -19,10 +19,6 @@ from botbuilder.dialogs.choices import Choice
 from botbuilder.core import MessageFactory, ConversationState
 from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
 
-from data_models import UserProfile, perform_insurance_cpt_check
-from data_models.models import CptCode
-
-from errors import NotValidInput
 
 from models.state import CodeConversationData
 
