@@ -1,6 +1,5 @@
 """Holds class that implements the CPT code check dialog"""
 
-from typing import Text
 from botbuilder.dialogs import (
     ComponentDialog,
     WaterfallDialog,
@@ -16,10 +15,10 @@ from botbuilder.dialogs.prompts import (
 )
 from botbuilder.core import MessageFactory, StatePropertyAccessor
 
-from aiohttp import ClientSession
-from insurance_checker import async_api, checker
+from insurance_checker import async_api, checker, models
 
 from dialogs.base_dialog import BaseDialog
+from dialogs.coverage_selection import Coverage_Selection
 
 
 class CPT_Code_Verification_Dialog(BaseDialog):
@@ -37,7 +36,12 @@ class CPT_Code_Verification_Dialog(BaseDialog):
         self.add_dialog(
             WaterfallDialog(
                 WaterfallDialog.__name__,
-                [self.cpt_step, self.confirmation_step, self.inquiry_results_step],
+                [
+                    self.call_coverage_selection,
+                    self.cpt_step,
+                    self.confirmation_step,
+                    self.inquiry_results_step,
+                ],
             )
         )
         self.add_dialog(TextPrompt(TextPrompt.__name__))
@@ -45,12 +49,22 @@ class CPT_Code_Verification_Dialog(BaseDialog):
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
         self.add_dialog(ConfirmPrompt(ConfirmPrompt.__name__))
 
+        self.add_dialog(
+            Coverage_Selection(user_state_accessor, conversation_state_accesor)
+        )
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Check if a CPT code is covered and/or needs authorization"
 
+    async def call_coverage_selection(
+        self, step_context: WaterfallStepContext
+    ) -> DialogTurnResult:
+        """Call the coverage selection dialog to have user select insurance"""
+
+        await self.state_set_up(step_context)
+        return await step_context.begin_dialog(Coverage_Selection.__name__)
+
     async def cpt_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Ask for the CPT code to check"""
-        await self.state_set_up(step_context)
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(
@@ -67,7 +81,6 @@ class CPT_Code_Verification_Dialog(BaseDialog):
                 session, step_context.result
             )
         # if the API call was successful
-        print(cpt_code)
         if cpt_code:
             self.conversation_state.cpt_code = cpt_code
 

@@ -19,9 +19,12 @@ FC_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.envi
 
 
 class Session:
+    def __init__(self):
+        self.headers = HEADERS
+
     async def __aenter__(self) -> ClientSession:
         if not hasattr(self, "session"):
-            self.session = ClientSession()
+            self.session = ClientSession(headers=self.headers)
         return self.session
 
     async def __aexit__(self, _not, sure, why):
@@ -55,7 +58,7 @@ async def get_payers(session: ClientSession) -> list:
         select_fields("payer_name") + "&" + filter_unique("payer_name", asdict=False)
     )
     # print(params)
-    async with session.get(INS_URL + "?" + params, headers=HEADERS) as resp:
+    async with session.get(INS_URL + "?" + params) as resp:
         # return await _raise_for_status(resp, Payer)
         res = await resp.json()
         records = res["records"]
@@ -66,47 +69,41 @@ async def get_coverages_by_payer_name(
     session: ClientSession, payerName: str
 ) -> List[Insurance]:
     async with session.get(
-        INS_URL, headers=HEADERS, params=exact_value_filter("payer_name", payerName)
+        INS_URL, params=exact_value_filter("payer_name", payerName)
     ) as resp:
         return await _raise_for_status(resp, Insurance)
 
 
 async def get_coverage_by_id(session: ClientSession, id: str) -> Insurance:
-    async with session.get(INS_URL + "/" + id, headers=HEADERS) as resp:
+    async with session.get(INS_URL + "/" + id) as resp:
         return await _raise_for_status(resp, Insurance)
 
 
 async def get_coverage_by_name(session: ClientSession, name: str) -> Insurance:
     # use insurance_name field id -> changes to insurance_name field likely
     async with session.get(
-        INS_URL, headers=HEADERS, params=exact_value_filter("insurance_name", name)
+        INS_URL, params=exact_value_filter("insurance_name", name)
     ) as resp:
         return await _raise_for_status(resp, Insurance)
 
 
 async def get_coverage_by_id(session: ClientSession, id: str) -> CPT_code:
-    async with session.get(CPT_URL + "/" + id, headers=HEADERS) as resp:
+    async with session.get(CPT_URL + "/" + id) as resp:
         return await _raise_for_status(resp, CPT_code)
 
 
 async def get_cpt_code_by_code(session: ClientSession, code: str) -> CPT_code:
-    async with session.get(
-        CPT_URL, headers=HEADERS, params=exact_value_filter("code", code)
-    ) as resp:
+    async with session.get(CPT_URL, params=exact_value_filter("code", code)) as resp:
         return await _raise_for_status(resp, CPT_code)
 
 
 async def get_cpt_code_by_exact_name(session: ClientSession, name: str) -> CPT_code:
-    async with session.get(
-        CPT_URL, headers=HEADERS, params=exact_value_filter("name", name)
-    ) as resp:
+    async with session.get(CPT_URL, params=exact_value_filter("name", name)) as resp:
         return await _raise_for_status(resp, CPT_code)
 
 
 async def get_cpt_code_by_name_includes(session: ClientSession, name: str) -> CPT_code:
-    async with session.get(
-        CPT_URL, headers=HEADERS, params=exact_value_filter("name", name)
-    ) as resp:
+    async with session.get(CPT_URL, params=exact_value_filter("name", name)) as resp:
         return await _raise_for_status(resp, CPT_code)
 
 
@@ -118,7 +115,7 @@ async def get_cpt_codes_by_type(session: ClientSession, type=str) -> List[CPT_co
 async def get_financial_classes_by_name(session: ClientSession, name: str) -> dict:
     """TBD"""
     pass
-    # async with session.get(FC_URL, headers=HEADERS, params=exact_value_filter('name', name)) as resp:
+    # async with session.get(FC_URL, params=exact_value_filter('name', name)) as resp:
     # r
 
 

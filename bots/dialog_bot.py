@@ -12,13 +12,7 @@ from botbuilder.core import (
 from botbuilder.dialogs import Dialog
 from helpers.dialog_helper import DialogHelper
 from botbuilder.core.channel_service_handler import ChannelAccount
-from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
-from botbuilder.dialogs import Dialog, DialogSet, DialogTurnStatus
-from botbuilder.core import StatePropertyAccessor, TurnContext
-from botbuilder.dialogs.choices.list_style import ListStyle
-
-from aiohttp import ClientSession
-from insurance_checker import async_api
+from botbuilder.core import TurnContext
 
 
 class DialogBot(ActivityHandler):
@@ -69,13 +63,11 @@ class DialogBot(ActivityHandler):
     async def on_members_added_activity(
         self, members_added: ChannelAccount, turn_context: TurnContext
     ):
-        sesh = ClientSession()
-        payers = await async_api.get_payers(sesh)
-        await sesh.close()
         for member_added in members_added:
             if member_added.id != turn_context.activity.recipient.id:
-                reply = MessageFactory.text(
-                    """Hey! I help automate insurance verification workflows. Send me any message to get started"""
+                await DialogHelper.run_dialog(
+                    self.dialog,
+                    turn_context,
+                    self.conversation_state.create_property("DialogState"),
                 )
-                return await turn_context.send_activity(reply)
 

@@ -23,6 +23,8 @@ from config import DefaultConfig
 from dialogs.main_dialog import MainDialog
 from bots import DialogBot
 
+from insurance_checker import async_api
+
 from botbuilder.azure import CosmosDbPartitionedStorage, CosmosDbPartitionedConfig
 
 CONFIG = DefaultConfig()
@@ -69,6 +71,8 @@ async def on_error(context: TurnContext, error: Exception):
 # In this case, we want an unbound method, so MethodType is not needed.
 ADAPTER.on_turn_error = on_error
 
+AIRTABLE_SESSION = async_api.Session()
+
 # Create MemoryStorage, UserState and ConversationState
 cosmos_config = CosmosDbPartitionedConfig(
     cosmos_db_endpoint=CONFIG.COSMOS_DB_URI,
@@ -78,11 +82,12 @@ cosmos_config = CosmosDbPartitionedConfig(
     compatibility_mode=False,
 )
 
-USER_MEMORY = CosmosDbPartitionedStorage(cosmos_config)
-USER_STATE = UserState(USER_MEMORY)
+# USER_MEMORY = CosmosDbPartitionedStorage(cosmos_config)
 
-CONVERSATION_MEMORY = MemoryStorage()
-CONVERSATION_STATE = ConversationState(CONVERSATION_MEMORY)
+
+MEMORY = MemoryStorage()
+USER_STATE = UserState(MEMORY)
+CONVERSATION_STATE = ConversationState(MEMORY)
 
 # create main dialog and bot
 DIALOG = MainDialog(USER_STATE, CONVERSATION_STATE)

@@ -13,6 +13,7 @@ from dialogs.cpt_code_verification import CPT_Code_Verification_Dialog
 from dialogs.referral_required import Referral_Required_Dialog
 from dialogs.user_profile import User_Profile_Dialog
 
+
 from botbuilder.dialogs.choices.list_style import ListStyle
 
 from insurance_checker import async_api, models
@@ -37,8 +38,6 @@ class MainDialog(ComponentDialog):
             WaterfallDialog(
                 WaterfallDialog.__name__,
                 [
-                    self.payer_name_step,
-                    self.coverages_by_payer,
                     self.choose_a_workflow,
                     self.begin_desired_dialog,
                     self.resume_dialog,
@@ -71,60 +70,6 @@ class MainDialog(ComponentDialog):
             for i, dialog in enumerate(instantiated_dialogs)
         ]
 
-    async def payer_name_step(
-        self, step_context: WaterfallStepContext
-    ) -> DialogTurnResult:
-        """Have the user select a payer from a list"""
-        async with self.session as session:
-            self.payers = await async_api.get_payers(session)
-
-        return await step_context.prompt(
-            ChoicePrompt.__name__,
-            PromptOptions(
-                prompt=MessageFactory.text(
-                    "Select a Payer. If you don't see your payer selected `None of these`"
-                ),
-                choices=[
-                    Choice(payer) for payer in [*sorted(self.payers), "None of these"]
-                ],
-                style=ListStyle.hero_card,
-            ),
-        )
-
-    async def coverages_by_payer(
-        self, step_context: WaterfallStepContext
-    ) -> DialogTurnResult:
-        """Have the user select a coverage based on payer selection"""
-        step_context.values["payer_selected"] = step_context.result.value
-        async with self.session as session:
-            coverages = await async_api.get_coverages_by_payer_name(
-                session, step_context.values["payer_selected"]
-            )
-        # b/c sorted will fail if there if coverages was not an iterable
-        if len(coverages) > 1:
-            coverages = sorted(coverages)
-
-        return await step_context.prompt(
-            ChoicePrompt.__name__,
-            PromptOptions(
-                prompt=MessageFactory.text(
-                    f"Select a coverage associated with payer {step_context.values['payer_selected']}. If you don't see your payer selected `None of these`"
-                ),
-                choices=[
-                    Choice(coverage.insurance_name)
-                    for coverage in [
-                        *coverages,
-                        models.Insurance(
-                            id=0,
-                            insurance_name="None of these",
-                            payer_name="",  # fake information to get the list comphrension to work
-                        ),
-                    ]
-                ],
-                style=ListStyle.hero_card,
-            ),
-        )
-
     async def choose_a_workflow(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
@@ -132,19 +77,19 @@ class MainDialog(ComponentDialog):
         bot can make. The user will receive the choices and be prompted to select one. The selected 
         choice will be used by this bot (MainDialog) to begin the correct dialog desired by user.
         """
-        step_context.values["coverage_selected"] = step_context.result.value
-        conversation_state = await self.conversation_state_accessor.get(
+        await self.conversation_state_accessor.get(
             step_context.context, models.Conversation_State
         )
-        async with self.session as session:
-            conversation_state.coverage = await async_api.get_coverage_by_name(
-                session, step_context.values["coverage_selected"]
-            )
+
+        await self.user_state_accessor.get(
+            step_context.context, models.UserProfile
+        )
+
         return await step_context.prompt(
             ChoicePrompt.__name__,
             PromptOptions(
                 prompt=MessageFactory.text(
-                    """Thanks for confirming the visit coverage! I can help with these workflows:"""
+                    """Welcome to the Insurance Verification bot! I can assist with several workflows and I am adding new features all the time. Please select a workflow to get started!"""
                 ),
                 choices=[Choice(workflow.description) for workflow in self.workflows],
                 style=ListStyle.hero_card,

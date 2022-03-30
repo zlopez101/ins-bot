@@ -22,13 +22,15 @@ async def get(sesh: aiohttp.ClientSession):
 
 if __name__ == "__main__":
 
-    async def main():
+    # async def main():
 
-        gen = Generate()
-        async with gen as session:
-            await get(session)
+    #     gen = Generate()
+    #     async with gen as session:
+    #         await get(session)
 
-    asyncio.set_event_loop_policy(
-        asyncio.WindowsSelectorEventLoopPolicy()
-    )  # windows issue
-    asyncio.run(main())
+    # asyncio.set_event_loop_policy(
+    #     asyncio.WindowsSelectorEventLoopPolicy()
+    # )  # windows issue
+    # asyncio.run(main())
+    gen = Generate()
+    print(gen.__name__)
