@@ -1,145 +1,62 @@
-import asyncio
-from typing import Dict, List
-from aiohttp import ClientSession, ClientResponse
-from requests import Response, Session
-from dotenv import load_dotenv
-import os
-from urllib.parse import quote
-from models import Insurance, CPT_code, InsuranceFromAPI
-
-load_dotenv()
-
-HEADERS = {
-    "Authorization": f"Bearer {os.environ['API_key']}",
-    "Content-Type": "application/json",
-}
-INS_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['insurance_table_id']}"
-CPT_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['cpt_codes_table_id']}"
+from .models import CPT_code, Insurance
 
 
-class Aysnc_Checker:
-    def __init__(self):
-        self.BASE_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}"
-        self.INS_URL = f"/{os.environ['insurance_table_id']}"
-        self.CPT_URL = f"/{os.environ['cpt_codes_table_id']}"
-        self.HEADERS = {
-            "Authorization": f"Bearer {os.environ['API_key']}",
-            "Content-Type": "application/json",
-        }
-        # self.session = ClientSession(headers=self.HEADERS)
+def check_cpt_code_insurance_age_combination(
+    code: CPT_code, coverage: Insurance, age: int = 55
+) -> bool:
+    """Check cpt_code, insurance, and age to verify that a vaccination is covered
 
-    async def __aenter__(self, endpoint: str, **kwargs):
-        print("here")
-        if not hasattr(self, "session"):
-            self.session = ClientSession(headers=self.HEADERS)
-        return self.session.get(endpoint, **kwargs)
+    Args:
+        code (CPT_code): CPT code to check
+        coverage (Insurance): insurance selected from the main_dialog workflow
+        age (int, optional): Does the CPT code have age restrictions. Defaults to None.
+    """
+    covered = True
 
-    async def __aexit__(self):
-        return self.session.close()
+    def check_financial_class(code: CPT_code, coverage: Insurance) -> bool:
+        # coverage.financial_class is a list
+        if code.financial_class_exceptions:
+            if [
+                exc
+                for exc in code.financial_class_exceptions
+                if exc in coverage.financial_class
+            ]:
+                return True
 
-    def close(self):
-        return self.session.close()
+    def check_insurance_exception(code: CPT_code, coverage: Insurance) -> bool:
+        if code.coverage_exceptions:
+            if [exc for exc in code.coverage_exceptions if exc == coverage.id]:
+                return True
 
-    async def _request(self, endpoint: str, params: dict) -> ClientResponse:
-        async with self(self.BASE_URL + endpoint, params=params) as resp:
-            r = await resp.json()
-            print(r)
+    def check_age(code: CPT_code, age: int) -> bool:
+        if age > code.age_maximum or age < code.age_minimum:
+            return True
 
-    async def _post(self, endpoint: str, data: dict) -> ClientResponse:
-        async with self.session.get(
-            self.BASE_URL + endpoint, json=data, timeout=10
-        ) as resp:
-            pass
+    if any(
+        [
+            check_financial_class(code, coverage),
+            check_insurance_exception(code, coverage),
+            check_age(code, age),
+        ]
+    ):
+        covered = False
 
-    def _raise_for_status(response: ClientResponse) -> dict:
-        pass
-
-    def get_coverages(self):
-        params = dict(maxRecords=5)
-        return self._request(self.INS_URL, params)
-
-    def __repr__(self):
-        return "Async Airtable Client"
+    return covered
 
 
-class AsyncSession:
-    def __init__(self, url):
-        self.BASE_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}"
-        self.INS_URL = f"/{os.environ['insurance_table_id']}"
-        self.CPT_URL = f"/{os.environ['cpt_codes_table_id']}"
-        self.HEADERS = {
-            "Authorization": f"Bearer {os.environ['API_key']}",
-            "Content-Type": "application/json",
-        }
+def requires_age_prompt(code: CPT_code, coverage: Insurance) -> bool:
+    """Determine if the age of patient prompt is required.
 
-    async def __aenter__(self):
-        if not hasattr(self, "session"):
-            self.session = ClientSession(headers=self.HEADERS)
-        response = await self.session.get(self._url)
-        return response
+    Args:
+        code (CPT_code)
+        coverage (Insurance)
 
-    async def __aexit__(self, exc_type, exc_value, exc_tb):
-        await self.session.close()
+    Returns:
+        bool: True if prompt else False
+    """
+    requires_prompt = False
+    # defaults for CPT code creation
+    if code.age_minimum != 0 or code.age_maximum != 1000:
+        requires_prompt = True
+    return requires_prompt
 
-    async def _request(self, endpoint, **kwargs):
-        pass
-
-
-class Sync_Checker:
-    def __init__(self):
-        self.BASE_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}"
-        self.INS_URL = f"/{os.environ['insurance_table_id']}"
-        self.CPT_URL = f"/{os.environ['cpt_codes_table_id']}"
-        self.HEADERS = {
-            "Authorization": f"Bearer {os.environ['API_key']}",
-            "Content-Type": "application/json",
-        }
-        self.session = Session()
-        self.session.headers.update(self.HEADERS)
-
-    def _raise_for_status(response: Response) -> dict:
-        pass
-
-    def get_coverages(self, maxRecords: int = 5) -> List[Insurance]:
-        r = self.session.get(
-            self.BASE_URL + self.INS_URL, params=dict(maxRecords=maxRecords)
-        )
-        return r.json()
-
-    def get_coverages_by_payer_name(self, payerName: str) -> List[Insurance]:
-        formula = f'({{payer_name}} = "{payerName}")'
-        params = dict(filterByFormula=formula)
-        r = self.session.get(self.BASE_URL + self.INS_URL, params=params)
-        return r
-
-    def get_coverage_by_id(self, id: str) -> Insurance:
-        return self.session.get(self.BASE_URL + self.INS_URL + f"/{id}")
-
-    def get_coverage_by_name(self, coverage_name: str) -> List[Insurance]:
-        formula = f'({{insurance_name}} =  "{coverage_name}")'
-        params = dict(filterByFormula=formula)
-        r = self.session.get(self.BASE_URL + self.INS_URL, params=params)
-        return r
-
-    def get_cpt_code(self, code: str) -> CPT_code:
-        formula = f'({{code}} =  "{code}")'
-        params = dict(filterByFormula=formula)
-        r = self.session.get(self.BASE_URL + self.CPT_URL, params=params)
-        return r
-
-    def create_cpt_code(self, code: CPT_code) -> dict:
-        _json = {"fields": code(), "typecast": True}
-        r = self.session.post(self.BASE_URL + self.CPT_URL, json=_json)
-        return r.json()
-
-
-async def _get(session: ClientSession, endpoint: str, **kwargs) -> ClientResponse:
-    pass
-
-
-async def _post(session: ClientSession, endpoint: str, **kwargs) -> ClientResponse:
-    pass
-
-
-if __name__ == "__main__":
-    pass

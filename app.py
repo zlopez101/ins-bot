@@ -11,6 +11,7 @@ from aiohttp.web import Request, Response, json_response
 from botbuilder.core import (
     BotFrameworkAdapter,
     BotFrameworkAdapterSettings,
+    MemoryStorage,
     ConversationState,
     TurnContext,
     UserState,
@@ -19,7 +20,7 @@ from botbuilder.core.integration import aiohttp_error_middleware
 from botbuilder.schema import Activity, ActivityTypes
 
 from config import DefaultConfig
-from dialogs import CPT_Code_Verification_Dialog
+from dialogs.main_dialog import MainDialog
 from bots import DialogBot
 
 from botbuilder.azure import CosmosDbPartitionedStorage, CosmosDbPartitionedConfig
@@ -77,12 +78,14 @@ cosmos_config = CosmosDbPartitionedConfig(
     compatibility_mode=False,
 )
 
-MEMORY = CosmosDbPartitionedStorage(cosmos_config)
-CONVERSATION_STATE = ConversationState(MEMORY)
-USER_STATE = UserState(MEMORY)
+USER_MEMORY = CosmosDbPartitionedStorage(cosmos_config)
+USER_STATE = UserState(USER_MEMORY)
+
+CONVERSATION_MEMORY = MemoryStorage()
+CONVERSATION_STATE = ConversationState(CONVERSATION_MEMORY)
 
 # create main dialog and bot
-DIALOG = CPT_Code_Verification_Dialog(CONVERSATION_STATE)
+DIALOG = MainDialog(USER_STATE, CONVERSATION_STATE)
 BOT = DialogBot(CONVERSATION_STATE, USER_STATE, DIALOG)
 
 
@@ -105,6 +108,14 @@ async def messages(req: Request) -> Response:
 
 APP = web.Application(middlewares=[aiohttp_error_middleware])
 APP.router.add_post("/api/messages", messages)
+
+
+def main():
+    try:
+        web.run_app(APP, host="localhost", port=CONFIG.PORT)
+    except Exception as error:
+        raise error
+
 
 if __name__ == "__main__":
     try:

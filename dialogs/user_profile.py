@@ -1,6 +1,3 @@
-"""Waterfall Dialog to assist with a inquiry with referrals
-"""
-
 from botbuilder.dialogs import (
     ComponentDialog,
     WaterfallDialog,
@@ -20,26 +17,29 @@ from botbuilder.dialogs.choices import Choice
 from botbuilder.core import MessageFactory, StatePropertyAccessor
 from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
 
-from dialogs.base_dialog import BaseDialog
 
-
-class Referral_Required_Dialog(BaseDialog):
+class User_Profile_Dialog(ComponentDialog):
     def __init__(
         self,
         user_state_accessor: StatePropertyAccessor,
-        conversation_state_accessor: StatePropertyAccessor,
+        conversation_state_accesor: StatePropertyAccessor,
     ):
-        super().__init__(
-            Referral_Required_Dialog.__name__,
-            user_state_accessor,
-            conversation_state_accessor,
-        )
+        super(User_Profile_Dialog, self).__init__(User_Profile_Dialog.__name__)
+
+        self.conversation_state_accesor = conversation_state_accesor
+        self.user_state_accessor = user_state_accessor
         self.add_dialog(WaterfallDialog(WaterfallDialog.__name__, []))
 
         self.initial_dialog_id = WaterfallDialog.__name__
-        self.description = "Check if insurance requires a referral."
+        self.description = "Set up user profile"
 
-    async def referrals_required(
+    async def preferred_name_step(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
-        await self.state_set_up()
+        pass
+
+    async def clinic_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        pass
+
+    async def role_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        pass

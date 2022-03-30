@@ -1,5 +1,4 @@
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License.
+"""Holds class that implements the CPT code check dialog"""
 
 from typing import Text
 from botbuilder.dialogs import (
@@ -15,38 +14,30 @@ from botbuilder.dialogs.prompts import (
     ConfirmPrompt,
     PromptOptions,
 )
-from botbuilder.dialogs.choices import Choice
-from botbuilder.core import MessageFactory, ConversationState
-from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
+from botbuilder.core import MessageFactory, StatePropertyAccessor
+
+from aiohttp import ClientSession
+from insurance_checker import async_api, checker
+
+from dialogs.base_dialog import BaseDialog
 
 
-from models.state import CodeConversationData
-
-
-class InsuranceSpecificationDialog(ComponentDialog):
-    pass
-
-
-class CPT_Code_Verification_Dialog(ComponentDialog):
-    def __init__(self, conversation_state: ConversationState):
-        super(CPT_Code_Verification_Dialog, self).__init__(
-            CPT_Code_Verification_Dialog.__name__
-        )
-
-        self.conversation_profile_accessor = conversation_state.create_property(
-            "code_and_insurance_combination"
+class CPT_Code_Verification_Dialog(BaseDialog):
+    def __init__(
+        self,
+        user_state_accessor: StatePropertyAccessor,
+        conversation_state_accesor: StatePropertyAccessor,
+    ):
+        super().__init__(
+            CPT_Code_Verification_Dialog.__name__,
+            user_state_accessor,
+            conversation_state_accesor,
         )
 
         self.add_dialog(
             WaterfallDialog(
                 WaterfallDialog.__name__,
-                [
-                    # self.choices_step,
-                    self.cpt_step,
-                    self.insurance_step,
-                    self.confirmation_step,
-                    self.inquiry_results_step,
-                ],
+                [self.cpt_step, self.confirmation_step, self.inquiry_results_step],
             )
         )
         self.add_dialog(TextPrompt(TextPrompt.__name__))
@@ -55,29 +46,11 @@ class CPT_Code_Verification_Dialog(ComponentDialog):
         self.add_dialog(ConfirmPrompt(ConfirmPrompt.__name__))
 
         self.initial_dialog_id = WaterfallDialog.__name__
-
-    # async def choices_step(
-    #     self, step_context: WaterfallStepContext
-    # ) -> DialogTurnResult:
-    #     return await step_context.prompt(
-    #         ChoicePrompt.__name__,
-    #         PromptOptions(
-    #             prompt=MessageFactory.text("choose something"),
-    #             choices=[Choice(v) for v in "abcde"],
-    #         ),
-    #     )
+        self.description = "Check if a CPT code is covered and/or needs authorization"
 
     async def cpt_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        """store insurance to check against and prompts user for the CPT code to check
-
-        Args:
-            step_context (WaterfallStepContext): incoming step context. need to save the insurance selected to check against
-
-        Returns:
-            DialogTurnResult: To be passed to the `age_step` function. 
-        """
-        # store the name of the insurance here
-        # step_context.values["insurance_submitted"] = step_context.result
+        """Ask for the CPT code to check"""
+        await self.state_set_up(step_context)
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(
@@ -85,97 +58,76 @@ class CPT_Code_Verification_Dialog(ComponentDialog):
             ),
         )
 
-    async def insurance_step(
-        self, step_context: WaterfallStepContext
-    ) -> DialogTurnResult:
-        """Begins the step context
-
-        Args:
-            step_context (WaterfallStepContext): [description]
-
-        Returns:
-            DialogTurnResult: [description]
-        """
-        # WaterfallStep always finishes with the end of the Waterfall or with another dialog;
-        # here it is a Prompt Dialog. Running a prompt here means the next WaterfallStep will
-        # be run when the users response is received.
-        step_context.values["cpt_code"] = step_context.result
-        return await step_context.prompt(
-            TextPrompt.__name__,
-            PromptOptions(prompt=MessageFactory.text("Please enter the insurance")),
-        )
-
-    # async def age_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-    #     """This is a step that would only be active if the cpt code submitted has an age requirement (HPV, Shingles). Still TBD
-
-    #     Args:
-    #         step_context (WaterfallStepContext): incoming step context. need to save to the CPT_code to check
-
-    #     Returns:
-    #         DialogTurnResult: To be passed to the `confirmation_step` function. sends user further info regarding cpt code check and awaits their response to age query.
-    #     """
-    #     pass
-
     async def confirmation_step(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
-        """[summary]
+        """Confirms with user that the correct code was selected"""
+        async with self.session as session:
+            cpt_code = await async_api.get_cpt_code_by_code(
+                session, step_context.result
+            )
+        # if the API call was successful
+        print(cpt_code)
+        if cpt_code:
+            self.conversation_state.cpt_code = cpt_code
 
-        Args:
-            step_context (WaterfallStepContext): [description]
-
-        Returns:
-            DialogTurnResult: [description]
-        """
-        step_context.values["insurance_submitted"] = step_context.result
-
-        # WaterfallStep always finishes with the end of the Waterfall or
-        # with another dialog; here it is a Prompt Dialog.
-        return await step_context.prompt(
-            ConfirmPrompt.__name__,
-            PromptOptions(
-                prompt=MessageFactory.text(
-                    f"You are checking if the code {step_context.values['cpt_code']} is covered by {step_context.values['insurance_submitted']} insurance. Is this correct?"
+            return await step_context.prompt(
+                ConfirmPrompt.__name__,
+                PromptOptions(
+                    prompt=MessageFactory.text(
+                        f"You are checking if the code {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is covered by {self.conversation_state.coverage.insurance_name}. Is this correct?"
+                    )
+                ),
+            )
+        else:
+            await step_context.context.send_activity(
+                MessageFactory.text(
+                    f"{step_context.result} code is not found in the database"
                 )
-            ),
-        )
+            )
+            return await step_context.replace_dialog(WaterfallDialog.__name__)
 
     async def inquiry_results_step(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
-        """Display inquiry results for user to take action on
-
-        Args:
-            step_context (WaterfallStepContext): Confirmation step_context result. If truthy, run the query and return result. If false, allow user to restart
-
-        Returns:
-            DialogTurnResult: results of inquiry
-        """
-        if step_context.result:
-            code_conversation_data = await self.conversation_profile_accessor.get(
-                step_context.context, CodeConversationData
-            )
-
-            code_conversation_data.cpt_code = step_context.values["cpt_code"]
-            code_conversation_data.insurance_submitted = step_context.values[
-                "insurance_submitted"
-            ]
-            # result = perform_insurance_cpt_check(
-            #     step_context.values["cpt_code"],
-            #     step_context.values["insurance_submitted"],
-            # )
-            await step_context.context.send_activity(
-                MessageFactory.text(
-                    # f"The cpt code {result['code']} is {result['covered?']} by the insurance {result['insurance']}.{result.get('explanation', '')} To query another insurance and cpt code combination, send me a message. Thanks!"
-                    f"I will check if {code_conversation_data.cpt_code} is covered by {code_conversation_data.insurance_submitted}."
+        """Display inquiry results"""
+        if step_context.result:  # the code/insurance combo is correct
+            if checker.check_cpt_code_insurance_age_combination(
+                self.conversation_state.cpt_code, self.conversation_state.coverage
+            ):
+                await step_context.context.send_activity(
+                    MessageFactory.text(
+                        # f"The cpt code {result['code']} is {result['covered?']} by the insurance {result['insurance']}.{result.get('explanation', '')} To query another insurance and cpt code combination, send me a message. Thanks!"
+                        f"Yes, the vaccine {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is covered by {self.conversation_state.coverage.insurance_name}."
+                    )
                 )
+            else:  # there is some exception
+                await step_context.context.send_activity(
+                    MessageFactory.text(
+                        f"No, the vaccine {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is **NOT** covered by {self.conversation_state.coverage.insurance_name}."
+                    )
+                )
+
+            # check again
+            return await step_context.prompt(
+                ConfirmPrompt.__name__,
+                PromptOptions(
+                    prompt=MessageFactory.text(
+                        "Do you want to lookup if another code is covered?"
+                    )
+                ),
             )
+
         else:
-            await step_context.context.send_activity(
-                MessageFactory.text("FINE THEN FUCK YOU TOO")
+            return await step_context.prompt(
+                ConfirmPrompt.__name__,
+                PromptOptions(
+                    prompt=MessageFactory.text("Ok! Would you like to try again?")
+                ),
             )
-            # await step_context.context.send_activity(
-            #     "Sorry getting the wrong information! To try again, please send me any message."
-            # )
-        return await step_context.end_dialog()
+
+    async def finish_combination(
+        self, step_context: WaterfallStepContext
+    ) -> DialogTurnResult:
+        pass
 

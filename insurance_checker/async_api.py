@@ -2,8 +2,8 @@
 """
 from typing import List
 from aiohttp import ClientSession, ClientResponse, ClientResponseError
-from models import Insurance, CPT_code, InsuranceFromAPI, Payer
-from utils import exact_value_filter, select_fields, filter_unique
+from .models import Insurance, CPT_code
+from .utils import exact_value_filter, select_fields, filter_unique
 from dotenv import load_dotenv
 import os
 
@@ -18,16 +18,30 @@ CPT_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.env
 FC_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['fc_table_id']}"
 
 
+class Session:
+    async def __aenter__(self) -> ClientSession:
+        if not hasattr(self, "session"):
+            self.session = ClientSession()
+        return self.session
+
+    async def __aexit__(self, _not, sure, why):
+        await self.session.close()
+        del self.session
+
+
 async def _raise_for_status(response: ClientResponse, response_object):
     try:
         response.raise_for_status()
         records = await response.json()
         # if retrieving a single record, the response object doesn't contain `key` "records"
-        records = records["records"] if records.get("records") else records
+        records = records["records"]
         if len(records) > 1:
             return [response_object.from_api(record) for record in records]
-        else:  # when using a filter the API will return a list of length 1 if there's only 1 value
+        elif len(records) == 1:
             return response_object.from_api(records[0])
+        else:  # when using a filter the API will return a list of length 1 if there's only 1 value
+            return None
+
     except ClientResponseError as e:
         # tbd
         raise e
@@ -45,7 +59,7 @@ async def get_payers(session: ClientSession) -> list:
         # return await _raise_for_status(resp, Payer)
         res = await resp.json()
         records = res["records"]
-        return set(record["fields"]["payer_name"] for record in records)
+        return list(set(record["fields"]["payer_name"] for record in records))
 
 
 async def get_coverages_by_payer_name(
@@ -114,10 +128,14 @@ if __name__ == "__main__":
 
     async def main():
 
-        async with ClientSession() as session:
-            r = await get_payers(session)
-            # print(len(r))
-            pprint.pprint(r)
+        async with ClientSession(headers=HEADERS) as session:
+            async with session.get(
+                CPT_URL, params=exact_value_filter("code", "90asdf75f0")
+            ) as resp:
+                records = await resp.json()
+                records = records["records"]
+                print(records)
+                print(type(records))
 
     asyncio.set_event_loop_policy(
         asyncio.WindowsSelectorEventLoopPolicy()

@@ -61,7 +61,6 @@ class Base:
         Returns:
             Insurance Instance
         """
-        assert isinstance(data["fields"]["payer_name"], str), f"{data}"
         return cls(data.get("id"), **data.pop("fields"))
 
     @staticmethod
@@ -78,30 +77,29 @@ class Base:
 
 
 @dataclass
-class Insurance(Base):
-    pass
-
-
-@dataclass
 class CPT_code(Base):
-    name: str
-    code: int
-    trade_names: List[str]
-    description: str
-    abbreviation: str
+    id: str = None
+    name: str = None
+    code: int = None
+    trade_names: List[str] = None
+    description: str = None
+    abbreviation: str = None
     age_minimum: int = 0
     age_maximum: int = 1000
+    financial_class_exceptions: List[str] = None
+    coverage_exceptions: List[str] = None
+    AuthorizationRequired: bool = False
 
 
-@dataclass
+@dataclass(order=True)
 class Insurance(Base):
 
     id: str
     insurance_name: str
     payer_name: str
-    financial_class: FinancialClass
-    network_status: NetworkStatus
-    referral_required: str
+    financial_class: FinancialClass = None
+    network_status: NetworkStatus = None
+    referral_required: str = None
     plan_type: PlanType = None
 
 
@@ -112,15 +110,44 @@ class Payer(Base):
 
 
 @dataclass
-class InsuranceFromAPI(Insurance):
-    @classmethod
-    def from_api(cls, data):
-        return cls(**data["fields"])  # , id=data["id"])
+class UserProfile:
+
+    name: str = None
+    role: str = None
+    location: str = None
 
 
-class EncodedParameter:
-    def __init__(self, s: str):
-        self.s = quote(s)
+@dataclass
+class CPT_Code_Verification_State:
 
-    def __str__(self) -> str:
-        return self.s
+    cpt_code: int = None
+    insurance_submitted: str = None
+
+
+@dataclass
+class Get_Correct_Coverage_State:
+    pass
+
+
+@dataclass
+class Referral_Required_State:
+    pass
+
+
+@dataclass
+class Main_Dialog_State:
+
+    cpt_code_verification_state: CPT_Code_Verification_State
+    get_correct_coverage_state: Get_Correct_Coverage_State
+    referral_required_state: Referral_Required_State
+
+
+@dataclass
+class Conversation_State:
+
+    patient: int = None
+    patient_age: int = None
+    coverage: Insurance = None
+    provider: int = None
+    location: str = None
+    cpt_code: List[int] = None

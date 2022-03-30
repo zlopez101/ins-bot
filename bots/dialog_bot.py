@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from csv import list_dialects
 from botbuilder.core import (
     ActivityHandler,
     ConversationState,
@@ -14,6 +15,12 @@ from botbuilder.core.channel_service_handler import ChannelAccount
 from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
 from botbuilder.dialogs import Dialog, DialogSet, DialogTurnStatus
 from botbuilder.core import StatePropertyAccessor, TurnContext
+from botbuilder.dialogs.choices.list_style import ListStyle
+
+from aiohttp import ClientSession
+from insurance_checker import async_api
+
+
 class DialogBot(ActivityHandler):
     """
     This Bot implementation can run any type of Dialog. The use of type parameterization is to allows multiple
@@ -62,17 +69,13 @@ class DialogBot(ActivityHandler):
     async def on_members_added_activity(
         self, members_added: ChannelAccount, turn_context: TurnContext
     ):
+        sesh = ClientSession()
+        payers = await async_api.get_payers(sesh)
+        await sesh.close()
         for member_added in members_added:
             if member_added.id != turn_context.activity.recipient.id:
                 reply = MessageFactory.text(
-                    """Hey! I help automate insurance verification workflows. I can:
-
-* verify if a cpt code (vaccine) is covered by insurance
-* verify if the patient's plan requires referrals                    
-* retrieve a list of coverages associated with a given payer
-
-Send me any message to get started!
-                    """
+                    """Hey! I help automate insurance verification workflows. Send me any message to get started"""
                 )
                 return await turn_context.send_activity(reply)
 
