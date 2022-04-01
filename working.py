@@ -1,6 +1,6 @@
 import aiohttp
 import asyncio
-
+from enum impr
 
 class Generate:
     async def __aenter__(self):

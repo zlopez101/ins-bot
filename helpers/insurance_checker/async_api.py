@@ -3,8 +3,8 @@
 from audioop import mul
 from typing import List
 from aiohttp import ClientSession, ClientResponse, ClientResponseError
-from .models import Insurance, CPT_code
-from .utils import exact_value_filter, select_fields, filter_unique, multiple_exact_value_filter
+from insurance_checker.models import Insurance, CPT_code
+from insurance_checker.utils import exact_value_filter, select_fields, filter_unique, multiple_exact_value_filter
 from dotenv import load_dotenv
 import os
 
@@ -17,7 +17,7 @@ HEADERS = {
 INS_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['insurance_table_id']}"
 CPT_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['cpt_codes_table_id']}"
 FC_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['fc_table_id']}"
-PROVIDER_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['providers_table_id']}"
+
 
 class Session:
     def __init__(self):
@@ -117,19 +117,6 @@ async def get_financial_classes_by_name(session: ClientSession, name: str) -> di
     # async with session.get(FC_URL, params=exact_value_filter('name', name)) as resp:
     # r
 
-async def get_locations(session: ClientSession) -> List[str]:
-    """Get the CBC locations
-
-    Args:
-        session (ClientSession): session to use
-        
-    Returns:
-        List[str]: List of locations
-    """
-    async with session.get(PROVIDER_URL) as resp:
-        results = await resp.json()
-        records = results['records']
-        return list(set([record['fields']['Department External Name'] for record in records]))
 
 if __name__ == "__main__":
     import asyncio
@@ -138,7 +125,11 @@ if __name__ == "__main__":
     async def main():
 
         async with ClientSession(headers=HEADERS) as session:
-            pprint(await get_locations(session))
+            both =  await get_coverages_by_payer_name(session, "BCBSTX")
+            inn_only = await get_coverages_by_payer_name(session, "BCBSTX", both_inn_and_oon=False)
+            pprint(both)
+            pprint(inn_only)
+            assert len(inn_only) < len(both)
     asyncio.set_event_loop_policy(
         asyncio.WindowsSelectorEventLoopPolicy()
     )  # windows issue

@@ -9,7 +9,7 @@ from botbuilder.dialogs.prompts import ChoicePrompt, PromptOptions, TextPrompt
 from botbuilder.dialogs.choices import Choice
 from botbuilder.core import MessageFactory, UserState, ConversationState
 
-from dialogs.cpt_code_verification import CPT_Code_Verification_Dialog
+from dialogs.vaccine_verification import Vaccine_Verification_Dialog
 from dialogs.referral_required import Referral_Required_Dialog
 from dialogs.user_profile import User_Profile_Dialog
 
@@ -50,11 +50,12 @@ class MainDialog(ComponentDialog):
         self.add_workflows(
             [
                 Referral_Required_Dialog,
-                CPT_Code_Verification_Dialog,
+                Vaccine_Verification_Dialog,
                 User_Profile_Dialog,
             ]
         )
         self.initial_dialog_id = WaterfallDialog.__name__
+        self.conversation_start = True
         self.session = async_api.Session()
 
     def add_workflows(self, dialogs: List[ComponentDialog]):
@@ -77,13 +78,19 @@ class MainDialog(ComponentDialog):
         bot can make. The user will receive the choices and be prompted to select one. The selected 
         choice will be used by this bot (MainDialog) to begin the correct dialog desired by user.
         """
-        await self.conversation_state_accessor.get(
-            step_context.context, models.Conversation_State
-        )
+        if self.conversation_start:
+            self.conversation_state: models.Conversation_State = await self.conversation_state_accessor.get(
+                step_context.context, models.Conversation_State
+            )
 
-        await self.user_state_accessor.get(
-            step_context.context, models.UserProfile
-        )
+            self.user_state: models.UserProfile = await self.user_state_accessor.get(
+                step_context.context, models.UserProfile
+            )
+            self.conversation_start = False
+
+        print(self.user_state)
+        if self.user_state.name:
+            print('reading results')
 
         return await step_context.prompt(
             ChoicePrompt.__name__,
@@ -115,6 +122,8 @@ class MainDialog(ComponentDialog):
     async def resume_dialog(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
+
+        print(self.user_state)
 
         return await step_context.prompt(
             ChoicePrompt.__name__,

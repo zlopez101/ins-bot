@@ -1,7 +1,7 @@
 """Utility function to help create Airtable requests"""
 
-from typing import List, Union
-from urllib.parse import quote, unquote
+from typing import List, Union, Tuple
+from urllib.parse import quote
 
 FILTER_ARG = "filterByFormula"
 
@@ -21,6 +21,24 @@ def exact_value_filter(field: str, value: str, asdict=True) -> Union[dict, str]:
         return {FILTER_ARG: f'({{{field}}} = "{value}")'}
     else:
         return f'{FILTER_ARG}=({{{field}}} = "{value}")'
+
+
+def multiple_exact_value_filter(*args) -> dict:
+    """Airtable has a specific filterbyformula specification.
+    This helper function creates the proper string
+
+    Args:
+        filters (List[Tuple[str, str]]): field (str): field to filter by
+                                         value (str): the value to filter to
+
+    Returns:
+        dict: _description_
+    """
+    filters = []
+    for arg in args:
+        temp = exact_value_filter(arg[0], arg[1])
+        filters.append(temp[FILTER_ARG])
+    return {FILTER_ARG: f'AND({", ".join(filters)})'}
 
 
 def filter_unique(field: str, asdict=True) -> Union[dict, str]:
@@ -62,4 +80,4 @@ def select_fields(field: List[str]) -> str:
 
 
 if __name__ == "__main__":
-    print(filter_unique("payer_name", asdict=False))
+    print(multiple_exact_value_filter(("payer_name", "BCBSTX"), ("network_status", "INN")))

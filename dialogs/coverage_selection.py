@@ -71,7 +71,7 @@ class Coverage_Selection(BaseDialog):
         step_context.values["payer_selected"] = step_context.result.value
         async with self.session as session:
             coverages = await async_api.get_coverages_by_payer_name(
-                session, step_context.values["payer_selected"]
+                session, step_context.values["payer_selected"], both_inn_and_oon=False
             )
         # b/c sorted will fail if there if coverages was not an iterable
         # TBD -> get_coverages_by_payer_name return a list of 1?
@@ -82,7 +82,7 @@ class Coverage_Selection(BaseDialog):
             ChoicePrompt.__name__,
             PromptOptions(
                 prompt=MessageFactory.text(
-                    f"Select a coverage associated with payer {step_context.values['payer_selected']}. If you don't see your payer selected `None of these`"
+                    f"Select coverage associated with payer {step_context.values['payer_selected']}. If you don't see your payer selected"
                 ),
                 choices=[
                     Choice(coverage.insurance_name)
@@ -107,6 +107,9 @@ class Coverage_Selection(BaseDialog):
             self.conversation_state.coverage = await async_api.get_coverage_by_name(
                 session, step_context.result.value
             )
-        print(self.conversation_state)
         return await step_context.end_dialog()
 
+
+
+class OON_coverages(BaseDialog):
+    pass

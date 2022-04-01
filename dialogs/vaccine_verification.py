@@ -21,14 +21,14 @@ from dialogs.base_dialog import BaseDialog
 from dialogs.coverage_selection import Coverage_Selection
 
 
-class CPT_Code_Verification_Dialog(BaseDialog):
+class Vaccine_Verification_Dialog(BaseDialog):
     def __init__(
         self,
         user_state_accessor: StatePropertyAccessor,
         conversation_state_accesor: StatePropertyAccessor,
     ):
         super().__init__(
-            CPT_Code_Verification_Dialog.__name__,
+            Vaccine_Verification_Dialog.__name__,
             user_state_accessor,
             conversation_state_accesor,
         )
@@ -53,7 +53,7 @@ class CPT_Code_Verification_Dialog(BaseDialog):
             Coverage_Selection(user_state_accessor, conversation_state_accesor)
         )
         self.initial_dialog_id = WaterfallDialog.__name__
-        self.description = "Check if a CPT code is covered and/or needs authorization"
+        self.description = "Check if a vaccine is covered in the office"
 
     async def call_coverage_selection(
         self, step_context: WaterfallStepContext

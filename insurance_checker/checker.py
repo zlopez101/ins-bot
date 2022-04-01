@@ -1,4 +1,4 @@
-from .models import CPT_code, Insurance
+from .models import CPT_code, Insurance, Provider
 
 
 def check_cpt_code_insurance_age_combination(
@@ -59,4 +59,16 @@ def requires_age_prompt(code: CPT_code, coverage: Insurance) -> bool:
     if code.age_minimum != 0 or code.age_maximum != 1000:
         requires_prompt = True
     return requires_prompt
+
+def requires_referral(coverage: Insurance, provider: Provider) -> bool:
+    """_summary_
+
+    Args:
+        coverage (Insurance): _description_
+        provider (Provider): _description_
+
+    Returns:
+        bool: _description_
+    """
+    return True if coverage.referral_required == "No" else False
 

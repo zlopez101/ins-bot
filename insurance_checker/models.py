@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List
 from urllib.parse import quote
 
-from enum import Enum
+from enum import Enum, auto
 
 
 class PlanType(Enum):
@@ -29,6 +29,38 @@ class NetworkStatus(Enum):
     INN = "INN"
     OON = "OON"
     NON = "NON"
+specialties = {
+    "PRIMARY": "primary",
+    "PEDIATRICS": "primary",
+    "INTERNAL MEDICINE": "primary",
+    "ENDOCRINOLOGY": "primary",
+    "PSYCHOLOGY": "psych",
+    "CARDIOLOGY": "primary",
+    "GERIATRIC MEDICINE": "primary",
+    "GASTROENTEROLOGY": "specialty",
+    "SOCIAL SERVICES": "pysch",
+    "BARIATRICS": "specialty",
+    "RHEUMATOLOGY": "specialty",
+    "PAIN MEDICINE": "specialty",
+    "CARDIOTHORACIC SURGERY": "specialty",
+    "INFECTIOUS DISEASES": "specialty",
+    "PEDIATRIC UROLOGY": "specialty",
+    "ONCOLOGY": "specialty",
+    "GENERAL SURGERY": "specialty",
+    "NEPHROLOGY": "specialty",
+    "DERMATOLOGY": "specialty",
+    "PULMONARY DISEASE": "specialty",
+    "CHILD AND ADOLESCENT PSYCHIATRY": "psych",
+    "ORTHOPAEDIC SURGERY": "specialty",
+    "PEDIATRIC NEPHROLOGY": "specialty",
+    "PEDIATRIC ENDOCRINOLOGY": "specialty",
+}
+
+class IsSpecialist(Enum):
+
+    Primary = 0
+    Specialist = 1
+    Psych = 2
 
 
 @dataclass
@@ -151,3 +183,16 @@ class Conversation_State:
     provider: int = None
     location: str = None
     cpt_code: List[int] = None
+
+@dataclass
+class Provider:
+
+    first: str
+    last: str
+    title: str
+    specialist: bool
+    Specialty: IsSpecialist
+
+
+if __name__ == '__main__':
+    print(IsSpecialist(1).name)

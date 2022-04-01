@@ -1,21 +1,14 @@
-from botbuilder.dialogs import (
-    ComponentDialog,
-    WaterfallDialog,
-    WaterfallStepContext,
-    DialogTurnResult,
-)
-from botbuilder.dialogs.prompts import (
-    TextPrompt,
-    NumberPrompt,
-    ChoicePrompt,
-    ConfirmPrompt,
-    PromptOptions,
-)
-from botbuilder.dialogs.choices import Choice
-from botbuilder.core import MessageFactory, StatePropertyAccessor
-from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
+"""This module contains the BaseDialog Class. All Dialogs, except the MainDialog, will inherit from it.
 
-from aiohttp import ClientSession
+    * Standardizes the conversation and user state accessors
+    * creates a async_api.Session object for API calls
+    * defines the state_set_up() method that uses the state accessors to get the state
+
+"""
+from botbuilder.dialogs import ComponentDialog, WaterfallStepContext
+from botbuilder.core import StatePropertyAccessor
+
+
 from insurance_checker import models, async_api
 
 
