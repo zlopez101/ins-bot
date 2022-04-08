@@ -14,6 +14,9 @@ from helpers.dialog_helper import DialogHelper
 from botbuilder.core.channel_service_handler import ChannelAccount
 from botbuilder.core import TurnContext
 
+from dialogs import main_dialog
+
+from insurance_checker import models
 
 class DialogBot(ActivityHandler):
     """
@@ -28,7 +31,6 @@ class DialogBot(ActivityHandler):
         self,
         conversation_state: ConversationState,
         user_state: UserState,
-        dialog: Dialog,
     ):
         if conversation_state is None:
             raise TypeError(
@@ -38,22 +40,28 @@ class DialogBot(ActivityHandler):
             raise TypeError(
                 "[DialogBot]: Missing parameter. user_state is required but None was given"
             )
-        if dialog is None:
-            raise Exception("[DialogBot]: Missing parameter. dialog is required")
 
         self.conversation_state = conversation_state
-
         self.user_state = user_state
-        self.dialog = dialog
+
+        self.user_state_accessor = self.user_state.create_property("User State")
+        self.conversation_state_accessor = self.conversation_state.create_property(
+            "Conversation State"
+        )
+        self.dialog = main_dialog.MainDialog(self.user_state_accessor, self.conversation_state_accessor)
+        self.turn = 0
 
     async def on_turn(self, turn_context: TurnContext):
         await super().on_turn(turn_context)
-
+        # print(f"turn number #{self.turn}")
+        # self.turn += 1
         # Save any state changes that might have ocurred during the turn.
         await self.conversation_state.save_changes(turn_context)
         await self.user_state.save_changes(turn_context)
 
     async def on_message_activity(self, turn_context: TurnContext):
+        
+
         await DialogHelper.run_dialog(
             self.dialog,
             turn_context,
@@ -65,9 +73,13 @@ class DialogBot(ActivityHandler):
     ):
         for member_added in members_added:
             if member_added.id != turn_context.activity.recipient.id:
+                await self.conversation_state_accessor.get(
+                    turn_context, models.Conversation_State)
+                await self.user_state_accessor.get(
+                turn_context, models.UserProfile
+                )
                 await DialogHelper.run_dialog(
                     self.dialog,
                     turn_context,
                     self.conversation_state.create_property("DialogState"),
                 )
-

@@ -1,3 +1,5 @@
+import asyncio
+from turtle import st
 from botbuilder.dialogs import (
     WaterfallDialog,
     WaterfallStepContext,
@@ -13,9 +15,11 @@ from botbuilder.dialogs.prompts import (
 from botbuilder.dialogs.choices import Choice
 from botbuilder.core import MessageFactory, StatePropertyAccessor
 from botbuilder.dialogs.choices.list_style import ListStyle
-
 from dialogs.base_dialog import BaseDialog
 from insurance_checker import async_api, models
+
+from models.bot import ChoiceLooper
+from models import bot
 
 
 class User_Profile_Dialog(BaseDialog):
@@ -42,11 +46,13 @@ class User_Profile_Dialog(BaseDialog):
                 ],
             )
         )
+        self.add_dialog(WaterfallDialog("LocationSelectionDialog", [self.choose_location, self.confirm_location]))
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         self.add_dialog(ConfirmPrompt(ConfirmPrompt.__name__))
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Set up user profile"
+        self.returns = models.UserProfile
 
     async def preferred_name_step(
         self, step_context: WaterfallStepContext
@@ -55,18 +61,31 @@ class User_Profile_Dialog(BaseDialog):
         return await step_context.prompt(TextPrompt.__name__, options=PromptOptions(
             prompt=MessageFactory.text('Please enter your preferred first name')
         ))
-
     async def clinic_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         step_context.values['name'] = step_context.result
-        async with self.session as session:
-            locations = await async_api.get_locations(session)
+        return await step_context.begin_dialog('LocationSelectionDialog', step_context.values)
+
+    async def choose_location(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        if not step_context.options.get('choices'):
+            async with self.session as session:
+                locations = await async_api.get_locations(session)
+                self.looping = ChoiceLooper(locations, lambda location: location.split('-'))
+        step_context.values['choices'] = True
+        
 
         return await step_context.prompt(ChoicePrompt.__name__, options=PromptOptions(
-            prompt=MessageFactory.text("Please Select a location"), choices=[Choice(location) for location in locations],
+            prompt=MessageFactory.text("Please Select a location"), choices=[Choice(location) for location in [*next(self.looping), "See Next 5"]],
             style=ListStyle.hero_card
         ))
+
+    async def confirm_location(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        if step_context.result.value.startswith("See"):
+            return await step_context.replace_dialog("LocationSelectionDialog", step_context.values)
+        else:
+            return await step_context.end_dialog(step_context.result.value)
+
     async def role_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        step_context.values['location'] = step_context.result.value
+        step_context.values['location'] = step_context.result
         return await step_context.prompt(ChoicePrompt.__name__, options=PromptOptions(
             prompt=MessageFactory.text("Select a role"),
             choices=[Choice(role) for role in ["Patient Access Representative", "Medical Assistant", "Nurse"]],
@@ -82,8 +101,7 @@ class User_Profile_Dialog(BaseDialog):
     
     async def save_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         if step_context.result:
-            print('saving results')
-            self.user_state = models.UserProfile(**step_context.values)
+            await self.user_state_accessor.set(step_context.context, models.UserProfile(**step_context.values))
             await step_context.context.send_activity(MessageFactory.text('Your information has been saved!'))
         else:
             await step_context.context.send_activity(MessageFactory.text("I didn't save your information. You can set up your user profile at any time!"))

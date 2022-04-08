@@ -2,10 +2,12 @@
 """
 from audioop import mul
 from typing import List
+from webbrowser import get
 from aiohttp import ClientSession, ClientResponse, ClientResponseError
-from .models import Insurance, CPT_code
+from .models import Insurance, CPT_code, Provider
 from .utils import exact_value_filter, select_fields, filter_unique, multiple_exact_value_filter
 from dotenv import load_dotenv
+from enum import Enum
 import os
 
 load_dotenv()
@@ -14,6 +16,15 @@ HEADERS = {
     "Authorization": f"Bearer {os.environ['API_key']}",
     "Content-Type": "application/json",
 }
+
+class URL(Enum):
+
+    INS_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['insurance_table_id']}"
+    CPT_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['cpt_codes_table_id']}"
+    FC_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['fc_table_id']}"
+    PROVIDER_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['providers_table_id']}"
+
+
 INS_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['insurance_table_id']}"
 CPT_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['cpt_codes_table_id']}"
 FC_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['fc_table_id']}"
@@ -36,17 +47,26 @@ class Session:
 async def _raise_for_status(response: ClientResponse, response_object):
 
         response.raise_for_status()
-        records = await response.json()
+        resp: dict = await response.json()
+        offset = resp.pop('offset', "")
+        records = resp.pop('records', {})
         # if retrieving a single record, the response object doesn't contain `key` "records"
-        records = records["records"]
-        if len(records) > 1:
-            return [response_object.from_api(record) for record in records]
-        elif len(records) == 1:
-            return response_object.from_api(records[0])
-        else:  # when using a filter the API will return a list of length 1 if there's only 1 value
-            return None
+        if records:
+            res = [response_object.from_api(record) for record in records]
+        else:
+            res = response_object.from_api(resp)
+        return res, offset
 
+async def _list_records(session: ClientSession, url: URL, params: str = None):
+    
+    async with session.get(url):
+        pass
 
+async def _retrieve_record(session: ClientSession, url: URL, id: str):
+    pass
+
+async def _create_record(session: ClientSession, url: URL, data):
+    pass
 
 async def get_payers(session: ClientSession) -> list:
     params = (
@@ -59,17 +79,19 @@ async def get_payers(session: ClientSession) -> list:
 
 
 async def get_coverages_by_payer_name(
-    session: ClientSession, payerName: str, both_inn_and_oon: bool=True
+    session: ClientSession, payerName: str, inn_only: bool=True, pageSize: int = 5, offset: str = None
 ) -> List[Insurance]:
-    if both_inn_and_oon:
-        async with session.get(
-            INS_URL, params=exact_value_filter("payer_name", payerName)
-        ) as resp:
-            return await _raise_for_status(resp, Insurance)
+    
+    params = dict(pageSize=pageSize)
+    if offset:
+        params['offset'] = offset
+        
+    if inn_only:
+        params.update(multiple_exact_value_filter(("payer_name", payerName), ("network_status", "INN")))
     else:
-        async with session.get(
-            INS_URL, params=multiple_exact_value_filter(("payer_name", payerName), ("network_status", "INN"))
-        ) as resp:
+        params.update(exact_value_filter("payer_name", payerName))
+
+    async with session.get(INS_URL, params=params) as resp:
             return await _raise_for_status(resp, Insurance)
 
 
@@ -86,7 +108,7 @@ async def get_coverage_by_name(session: ClientSession, name: str) -> Insurance:
         return await _raise_for_status(resp, Insurance)
 
 
-async def get_coverage_by_id(session: ClientSession, id: str) -> CPT_code:
+async def get_code_by_id(session: ClientSession, id: str) -> CPT_code:
     async with session.get(CPT_URL + "/" + id) as resp:
         return await _raise_for_status(resp, CPT_code)
 
@@ -129,7 +151,11 @@ async def get_locations(session: ClientSession) -> List[str]:
     async with session.get(PROVIDER_URL) as resp:
         results = await resp.json()
         records = results['records']
-        return list(set([record['fields']['Department External Name'] for record in records]))
+        return list(set([record['fields']['Location'] for record in records]))
+
+async def get_providers_at_location(session: ClientSession, location: str) -> List[Provider]:
+    async with session.get(PROVIDER_URL, params=exact_value_filter('Location', location)) as resp:
+        return await _raise_for_status(resp, Provider)
 
 if __name__ == "__main__":
     import asyncio
@@ -138,7 +164,16 @@ if __name__ == "__main__":
     async def main():
 
         async with ClientSession(headers=HEADERS) as session:
-            pprint(await get_locations(session))
+            page, offset = await get_coverages_by_payer_name(session, "BCBSTX")
+
+            print(page[0])
+
+
+            next_page, offset = await get_coverages_by_payer_name(session, "BCBSTX", offset=offset)
+
+            print(next_page[0])
+
+            assert page != next_page
     asyncio.set_event_loop_policy(
         asyncio.WindowsSelectorEventLoopPolicy()
     )  # windows issue

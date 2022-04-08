@@ -23,7 +23,7 @@ from botbuilder.schema import SuggestedActions, CardAction, ActionTypes
 from dialogs.base_dialog import BaseDialog
 from dialogs.coverage_selection import Coverage_Selection
 
-from insurance_checker import checker
+from insurance_checker import checker, models
 
 class Referral_Required_Dialog(BaseDialog):
     def __init__(
@@ -40,6 +40,7 @@ class Referral_Required_Dialog(BaseDialog):
         self.add_dialog(Coverage_Selection(self.user_state_accessor, conversation_state_accessor))
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Check if insurance requires a referral."
+        self.returns = models.Insurance
 
     async def get_coverage(
         self, step_context: WaterfallStepContext
@@ -51,9 +52,10 @@ class Referral_Required_Dialog(BaseDialog):
 
     async def referral_required(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Check if the insurance has a referral required flag"""
-        ref_required = checker.requires_referral(self.conversation_state.coverage, "provider goes here")
+        coverage = step_context.result
+        ref_required = checker.requires_referral(coverage)
         language = "requires" if ref_required else "does not require"
-        await step_context.context.send_activity(MessageFactory.text(f"{self.conversation_state.coverage.insurance_name} {language} a referral."))
+        await step_context.context.send_activity(MessageFactory.text(f"{coverage.insurance_name} {language} a referral."))
         return await step_context.end_dialog()
 
     

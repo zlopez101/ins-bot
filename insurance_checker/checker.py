@@ -60,15 +60,6 @@ def requires_age_prompt(code: CPT_code, coverage: Insurance) -> bool:
         requires_prompt = True
     return requires_prompt
 
-def requires_referral(coverage: Insurance, provider: Provider) -> bool:
-    """_summary_
-
-    Args:
-        coverage (Insurance): _description_
-        provider (Provider): _description_
-
-    Returns:
-        bool: _description_
-    """
+def requires_referral(coverage: Insurance) -> bool:
     return True if coverage.referral_required == "No" else False
 

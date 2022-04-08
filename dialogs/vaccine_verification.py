@@ -41,6 +41,7 @@ class Vaccine_Verification_Dialog(BaseDialog):
                     self.cpt_step,
                     self.confirmation_step,
                     self.inquiry_results_step,
+                    self.finish_combination
                 ],
             )
         )
@@ -54,6 +55,7 @@ class Vaccine_Verification_Dialog(BaseDialog):
         )
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Check if a vaccine is covered in the office"
+        self.returns = models.Insurance
 
     async def call_coverage_selection(
         self, step_context: WaterfallStepContext
@@ -65,6 +67,7 @@ class Vaccine_Verification_Dialog(BaseDialog):
 
     async def cpt_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Ask for the CPT code to check"""
+        step_context.values['coverage'] = step_context.result
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(
@@ -77,25 +80,25 @@ class Vaccine_Verification_Dialog(BaseDialog):
     ) -> DialogTurnResult:
         """Confirms with user that the correct code was selected"""
         async with self.session as session:
-            cpt_code = await async_api.get_cpt_code_by_code(
+            cpt_code, _ = await async_api.get_cpt_code_by_code(
                 session, step_context.result
             )
         # if the API call was successful
         if cpt_code:
-            self.conversation_state.cpt_code = cpt_code
-
+            self.conversation_state.cpt_code = cpt_code[0]
+        
             return await step_context.prompt(
                 ConfirmPrompt.__name__,
                 PromptOptions(
                     prompt=MessageFactory.text(
-                        f"You are checking if the code {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is covered by {self.conversation_state.coverage.insurance_name}. Is this correct?"
+                        f"You are checking if the code {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is covered by {step_context.values['coverage'].insurance_name}. Is this correct?"
                     )
                 ),
             )
         else:
             await step_context.context.send_activity(
                 MessageFactory.text(
-                    f"{step_context.result} code is not found in the database"
+                    f"{step_context.result} code is not found in the database, please try again"
                 )
             )
             return await step_context.replace_dialog(WaterfallDialog.__name__)
@@ -106,18 +109,18 @@ class Vaccine_Verification_Dialog(BaseDialog):
         """Display inquiry results"""
         if step_context.result:  # the code/insurance combo is correct
             if checker.check_cpt_code_insurance_age_combination(
-                self.conversation_state.cpt_code, self.conversation_state.coverage
+                self.conversation_state.cpt_code, step_context.values['coverage']
             ):
                 await step_context.context.send_activity(
                     MessageFactory.text(
                         # f"The cpt code {result['code']} is {result['covered?']} by the insurance {result['insurance']}.{result.get('explanation', '')} To query another insurance and cpt code combination, send me a message. Thanks!"
-                        f"Yes, the vaccine {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is covered by {self.conversation_state.coverage.insurance_name}."
+                        f"Yes, the vaccine {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is covered by {step_context.values['coverage'].insurance_name}."
                     )
                 )
             else:  # there is some exception
                 await step_context.context.send_activity(
                     MessageFactory.text(
-                        f"No, the vaccine {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is **NOT** covered by {self.conversation_state.coverage.insurance_name}."
+                        f"The vaccine {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is **NOT** covered by {step_context.values['coverage'].insurance_name}."
                     )
                 )
 
@@ -142,5 +145,8 @@ class Vaccine_Verification_Dialog(BaseDialog):
     async def finish_combination(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
-        pass
 
+        if step_context.result:
+            return await step_context.begin_dialog(self.initial_dialog_id)
+        else:
+            return await step_context.end_dialog()

@@ -1,10 +1,41 @@
-"""Utility function to help create Airtable requests"""
+"""This module provides the utilities (functions, and constants) for interacting with Airtable API"""
 
-from cgitb import reset
+
+from aiohttp import ClientSession
+from dotenv import load_dotenv
+import os
 from typing import List, Union, Tuple
 from urllib.parse import quote
+from enum import Enum
+load_dotenv()
+
+HEADERS = {
+    "Authorization": f"Bearer {os.environ['API_key']}",
+    "Content-Type": "application/json",
+}
+
+
+class URL(Enum):
+    INS_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['insurance_table_id']}"
+    CPT_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['cpt_codes_table_id']}"
+    FC_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['fc_table_id']}"
+    PROVIDER_URL = f"https://api.airtable.com/v0/{os.environ['airtable_base_id']}/{os.environ['providers_table_id']}"
+
 
 FILTER_ARG = "filterByFormula"
+
+class Session:
+    def __init__(self):
+        self.headers = HEADERS
+
+    async def __aenter__(self) -> ClientSession:
+        if not hasattr(self, "session"):
+            self.session = ClientSession(headers=self.headers)
+        return self.session
+
+    async def __aexit__(self, _not, sure, why):
+        await self.session.close()
+        del self.session
 
 
 def exact_value_filter(field: str, value: str, asdict=True) -> Union[dict, str]:
@@ -87,7 +118,3 @@ def select_fields(field: List[str]) -> str:
         # string
         res = f"fields[]={field}"
     return quote(res, safe="=")
-
-
-if __name__ == "__main__":
-    print(process_dict(dict(payer_name="BCBSTX", network_status="INN")))

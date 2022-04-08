@@ -82,16 +82,16 @@ cosmos_config = CosmosDbPartitionedConfig(
     compatibility_mode=False,
 )
 
-# USER_MEMORY = CosmosDbPartitionedStorage(cosmos_config)
+USER_MEMORY = CosmosDbPartitionedStorage(cosmos_config)
 
 
 MEMORY = MemoryStorage()
-USER_STATE = UserState(MEMORY)
+USER_STATE = UserState(USER_MEMORY)
 CONVERSATION_STATE = ConversationState(MEMORY)
 
 # create main dialog and bot
-DIALOG = MainDialog(USER_STATE, CONVERSATION_STATE)
-BOT = DialogBot(CONVERSATION_STATE, USER_STATE, DIALOG)
+# DIALOG = MainDialog(USER_STATE, CONVERSATION_STATE)
+BOT = DialogBot(CONVERSATION_STATE, USER_STATE)
 
 
 # Listen for incoming requests on /api/messages.

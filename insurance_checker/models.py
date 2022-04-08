@@ -29,6 +29,8 @@ class NetworkStatus(Enum):
     INN = "INN"
     OON = "OON"
     NON = "NON"
+
+    
 specialties = {
     "PRIMARY": "primary",
     "PEDIATRICS": "primary",
@@ -123,7 +125,7 @@ class CPT_code(Base):
     AuthorizationRequired: bool = False
 
 
-@dataclass(order=True)
+@dataclass
 class Insurance(Base):
 
     id: str
@@ -133,6 +135,11 @@ class Insurance(Base):
     network_status: NetworkStatus = None
     referral_required: str = None
     plan_type: PlanType = None
+
+    def __str__(self):
+        return self.insurance_name
+
+    
 
 
 @dataclass
@@ -147,6 +154,10 @@ class UserProfile:
     name: str = None
     role: str = None
     location: str = None
+
+    def __bool__(self):
+        """Used in the main dialog for confirming if the user has a profile"""
+        return True if self.name else False
 
 
 @dataclass
@@ -183,15 +194,21 @@ class Conversation_State:
     provider: int = None
     location: str = None
     cpt_code: List[int] = None
+    payer: str = None
+        
 
 @dataclass
-class Provider:
+class Provider(Base):
 
-    first: str
-    last: str
-    title: str
-    specialist: bool
-    Specialty: IsSpecialist
+    id: str
+    NPI: int
+    Provider: str
+    Location: str
+    Specialty: str
+
+    def __str__(self) -> str:
+        last, first = self.Provider.split(', ')
+        return f"{first.capitalize()} {last.capitalize()}"
 
 
 if __name__ == '__main__':
