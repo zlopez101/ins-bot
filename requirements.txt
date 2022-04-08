@@ -16,11 +16,11 @@ azure-storage-queue==12.1.5
 Babel==2.7.0
 binaryornot==0.4.4
 black==19.3b0
-botbuilder-azure==4.14.2
+botbuilder-azure==4.14.1
 botbuilder-core==4.14.1
-botbuilder-dialogs==4.14.0
+botbuilder-dialogs==4.14.1
 botbuilder-schema>=4.14.1
-botframework-connector==4.14.2
+botframework-connector==4.14.1
 botframework-streaming==4.14.1
 certifi==2021.5.30
 cffi==1.14.6
@@ -40,7 +40,7 @@ jinja2-time==0.2.0
 jsonpickle==1.4.2
 MarkupSafe==2.0.1
 msal==1.6.0
-msrest==0.6.19
+msrest==0.6.10
 msrestazure==0.6.4
 multidict==5.2.0
 multipledispatch==0.6.0
