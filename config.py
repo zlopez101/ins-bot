@@ -4,10 +4,10 @@
 
 import os
 
-if not os.environ.get("production"):
-    from dotenv import load_dotenv
+# if not os.environ.get("production"):
+#     from dotenv import load_dotenv
 
-    load_dotenv()
+#     load_dotenv()
 """ Bot Configuration """
 
 
