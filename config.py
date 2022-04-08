@@ -3,8 +3,11 @@
 # Licensed under the MIT License.
 
 import os
-from dotenv import load_dotenv
-load_dotenv()
+
+if os.environ.get("production"):
+    from dotenv import load_dotenv
+
+    load_dotenv()
 """ Bot Configuration """
 
 

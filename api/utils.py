@@ -2,12 +2,15 @@
 
 
 from aiohttp import ClientSession
-from dotenv import load_dotenv
 import os
-from typing import List, Union, Tuple
+from typing import List, Union
 from urllib.parse import quote
 from enum import Enum
-load_dotenv()
+
+if os.environ.get("production"):
+    from dotenv import load_dotenv
+
+    load_dotenv()
 
 HEADERS = {
     "Authorization": f"Bearer {os.environ['API_key']}",
@@ -23,6 +26,7 @@ class URL(Enum):
 
 
 FILTER_ARG = "filterByFormula"
+
 
 class Session:
     def __init__(self):
@@ -92,6 +96,7 @@ def string_contains_field_filter(field: str, value: str) -> dict:
     """
     pass
 
+
 def process_dict(dct: dict) -> str:
     """"""
     result = "?"
@@ -99,7 +104,6 @@ def process_dict(dct: dict) -> str:
         result += f"&{quote(key)}={quote(value)}"
 
     return result
-
 
 
 def select_fields(field: List[str]) -> str:
