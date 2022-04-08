@@ -4,7 +4,7 @@
 
 import os
 
-if os.environ.get("production"):
+if not os.environ.get("production"):
     PORT = 3978
     from dotenv import load_dotenv
 

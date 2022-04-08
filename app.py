@@ -129,6 +129,6 @@ def main():
 
 if __name__ == "__main__":
     try:
-        web.run_app(APP, port=CONFIG.PORT)
+        web.run_app(APP, host="localhost", port=CONFIG.PORT)
     except Exception as error:
         raise error
