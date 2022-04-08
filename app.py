@@ -111,8 +111,13 @@ async def messages(req: Request) -> Response:
     return Response(status=HTTPStatus.OK)
 
 
+async def home_handler(req: Request) -> Response:
+    return Response(body="Hello World!")
+
+
 APP = web.Application(middlewares=[aiohttp_error_middleware])
 APP.router.add_post("/api/messages", messages)
+APP.router.add_get("/", home_handler)
 
 
 def main():
@@ -124,6 +129,6 @@ def main():
 
 if __name__ == "__main__":
     try:
-        web.run_app(APP, host="localhost", port=CONFIG.PORT)
+        web.run_app(APP, port=CONFIG.PORT)
     except Exception as error:
         raise error
