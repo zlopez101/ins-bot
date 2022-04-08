@@ -4,17 +4,19 @@
 
 import os
 
-# if not os.environ.get("production"):
-#     from dotenv import load_dotenv
+if os.environ.get("production"):
+    PORT = 3978
+    from dotenv import load_dotenv
 
-#     load_dotenv()
-""" Bot Configuration """
+    load_dotenv()
+else:
+    PORT = 8000
 
 
 class DefaultConfig:
     """ Bot Configuration """
 
-    PORT = 3978
+    PORT = PORT
     APP_ID = os.environ.get("MicrosoftAppId", "")
     APP_PASSWORD = os.environ.get("MicrosoftAppPassword", "")
     COSMOS_DB_URI = os.environ.get("COSMOS_DB_URI")
