@@ -4,7 +4,7 @@
 
 import os
 
-if os.environ.get("production"):
+if not os.environ.get("production"):
     from dotenv import load_dotenv
 
     load_dotenv()

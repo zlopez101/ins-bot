@@ -7,7 +7,7 @@ from typing import List, Union
 from urllib.parse import quote
 from enum import Enum
 
-if os.environ.get("production"):
+if not os.environ.get("production"):
     from dotenv import load_dotenv
 
     load_dotenv()
