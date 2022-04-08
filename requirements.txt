@@ -20,7 +20,7 @@ botbuilder-ai==4.14.1
 botbuilder-azure==4.14.2
 botbuilder-core==4.14.1
 botbuilder-dialogs==4.14.0
-botbuilder-schema==4.14.2
+botbuilder-schema==4.14.1
 botframework-connector==4.14.2
 botframework-streaming==4.14.1
 certifi==2021.5.30
