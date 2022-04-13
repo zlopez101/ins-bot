@@ -1,7 +1,9 @@
 """Holds the models for the microsoft teams bot"""
-from typing import Callable, List
 from dataclasses import dataclass
+from typing import Callable, List
+
 from .api import Insurance
+
 
 @dataclass
 class Conversation_State:
@@ -13,7 +15,6 @@ class Conversation_State:
     location: str = None
     cpt_code: List[int] = None
     payer: str = None
-
 
 
 @dataclass
@@ -28,7 +29,9 @@ class UserProfile:
 class ChoiceLooper:
     """Class for holding the choices for the ChoicePrompt."""
 
-    def __init__(self, items: list, sorting_key: Callable = None,items_to_show: int = 5):
+    def __init__(
+        self, items: list, sorting_key: Callable = None, items_to_show: int = 5
+    ):
         self.items = sorted(items, key=sorting_key)
         self.start = 0
         self.end = items_to_show
@@ -41,12 +44,11 @@ class ChoiceLooper:
         return self
 
     def __next__(self):
-        # print([self.start, self.end])
-        current_choices = self.items[self.start:self.end]
+        current_choices = self.items[self.start : self.end]
         if not current_choices:
             self.start = 0
             self.end = self.items_to_show
-            current_choices = self.items[self.start:self.end]
+            current_choices = self.items[self.start : self.end]
         self.start += 5
         self.end += 5
         return current_choices

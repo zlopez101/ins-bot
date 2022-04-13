@@ -1,22 +1,13 @@
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License.
-
-from csv import list_dialects
-from botbuilder.core import (
-    ActivityHandler,
-    ConversationState,
-    TurnContext,
-    UserState,
-    MessageFactory,
-)
-from botbuilder.dialogs import Dialog
+from botbuilder.core import ActivityHandler, ConversationState, TurnContext, UserState
 from helpers.dialog_helper import DialogHelper
 from botbuilder.core.channel_service_handler import ChannelAccount
 from botbuilder.core import TurnContext
 
 from dialogs import main_dialog
 
-from insurance_checker import models
+
+from models import bot
+
 
 class DialogBot(ActivityHandler):
     """
@@ -28,9 +19,7 @@ class DialogBot(ActivityHandler):
     """
 
     def __init__(
-        self,
-        conversation_state: ConversationState,
-        user_state: UserState,
+        self, conversation_state: ConversationState, user_state: UserState,
     ):
         if conversation_state is None:
             raise TypeError(
@@ -48,19 +37,17 @@ class DialogBot(ActivityHandler):
         self.conversation_state_accessor = self.conversation_state.create_property(
             "Conversation State"
         )
-        self.dialog = main_dialog.MainDialog(self.user_state_accessor, self.conversation_state_accessor)
+        self.dialog = main_dialog.MainDialog(
+            self.user_state_accessor, self.conversation_state_accessor
+        )
         self.turn = 0
 
     async def on_turn(self, turn_context: TurnContext):
         await super().on_turn(turn_context)
-        # print(f"turn number #{self.turn}")
-        # self.turn += 1
-        # Save any state changes that might have ocurred during the turn.
         await self.conversation_state.save_changes(turn_context)
         await self.user_state.save_changes(turn_context)
 
     async def on_message_activity(self, turn_context: TurnContext):
-        
 
         await DialogHelper.run_dialog(
             self.dialog,
@@ -74,10 +61,9 @@ class DialogBot(ActivityHandler):
         for member_added in members_added:
             if member_added.id != turn_context.activity.recipient.id:
                 await self.conversation_state_accessor.get(
-                    turn_context, models.Conversation_State)
-                await self.user_state_accessor.get(
-                turn_context, models.UserProfile
+                    turn_context, bot.Conversation_State
                 )
+                await self.user_state_accessor.get(turn_context, bot.UserProfile)
                 await DialogHelper.run_dialog(
                     self.dialog,
                     turn_context,

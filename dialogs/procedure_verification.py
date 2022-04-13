@@ -1,7 +1,6 @@
 """This module holds the Procedure_Verification_Dialog class."""
 
 from botbuilder.dialogs import (
-    ComponentDialog,
     WaterfallDialog,
     WaterfallStepContext,
     DialogTurnResult,
@@ -15,14 +14,17 @@ from botbuilder.dialogs.prompts import (
 )
 from botbuilder.core import MessageFactory, StatePropertyAccessor
 
-from insurance_checker import async_api, checker, models
+from . import checker
 
 from dialogs.base_dialog import BaseDialog
 from dialogs.coverage_selection import Coverage_Selection
 
+import api
+
 
 class Procedure_Verification_Dialog(BaseDialog):
     """Implements the Procedure Verification Workflow"""
+
     def __init__(
         self,
         user_state_accessor: StatePropertyAccessor,
@@ -69,7 +71,9 @@ class Procedure_Verification_Dialog(BaseDialog):
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(
-                prompt=MessageFactory.text("Please enter the procedure code(s) to check. If entering multiple codes, please separate codes with a comma.")
+                prompt=MessageFactory.text(
+                    "Please enter the procedure code(s) to check. If entering multiple codes, please separate codes with a comma."
+                )
             ),
         )
 
@@ -78,7 +82,7 @@ class Procedure_Verification_Dialog(BaseDialog):
     ) -> DialogTurnResult:
         """Confirms with user that the correct code was selected"""
         async with self.session as session:
-            cpt_code = await async_api.get_cpt_code_by_code(
+            cpt_code = await api.coverages.get_cpt_code_by_code(
                 session, step_context.result
             )
         # if the API call was successful

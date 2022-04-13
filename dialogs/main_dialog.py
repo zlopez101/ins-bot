@@ -5,7 +5,12 @@ from botbuilder.dialogs import (
     WaterfallStepContext,
     DialogTurnResult,
 )
-from botbuilder.dialogs.prompts import ChoicePrompt, PromptOptions, TextPrompt, ConfirmPrompt
+from botbuilder.dialogs.prompts import (
+    ChoicePrompt,
+    PromptOptions,
+    TextPrompt,
+    ConfirmPrompt,
+)
 from botbuilder.dialogs.choices import Choice
 from botbuilder.core import MessageFactory, StatePropertyAccessor
 
@@ -17,6 +22,7 @@ from dialogs.provider_network_status import Provider_Network_Status
 from botbuilder.dialogs.choices.list_style import ListStyle
 
 from models import bot
+
 
 class Workflow:
     def __init__(self, id: int, description: str, dialog_id: str, returns: object):
@@ -38,17 +44,26 @@ class Workflow:
 
 class MainDialog(BaseDialog):
     """The Main Dialog"""
-    def __init__(self, user_state_accessor: StatePropertyAccessor, conversation_state_accessor: StatePropertyAccessor):
 
-        super().__init__(MainDialog.__name__, user_state_accessor, conversation_state_accessor)
+    def __init__(
+        self,
+        user_state_accessor: StatePropertyAccessor,
+        conversation_state_accessor: StatePropertyAccessor,
+    ):
+
+        super().__init__(
+            MainDialog.__name__, user_state_accessor, conversation_state_accessor
+        )
         self.add_dialog(
             WaterfallDialog(
-                WaterfallDialog.__name__,
-                [
-                    self.choose_a_workflow,
-                    self.begin_desired_dialog,
-                    self.resume_dialog
-                ],
+                "main_loop",
+                [self.choose_workflow, self.begin_desired_dialog, self.resume_dialog,],
+            )
+        )
+        self.add_dialog(
+            WaterfallDialog(
+                "signInWaterfall",
+                [self.ask_sign_in, self.confirm_sign_in, self.pass_to_workflow],
             )
         )
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
@@ -60,10 +75,10 @@ class MainDialog(BaseDialog):
                 Referral_Required_Dialog,
                 Vaccine_Verification_Dialog,
                 Provider_Network_Status,
-                User_Profile_Dialog
+                User_Profile_Dialog,
             ]
         )
-        self.initial_dialog_id = WaterfallDialog.__name__
+        self.initial_dialog_id = "signInWaterfall"
 
     def add_workflows(self, dialogs: List[ComponentDialog]):
         """This method is called in __init__() and adds the dialogs to the main dialog
@@ -78,48 +93,90 @@ class MainDialog(BaseDialog):
             for i, dialog in enumerate(instantiated_dialogs)
         ]
 
-    async def choose_a_workflow(
-        self, step_context: WaterfallStepContext
-    ) -> DialogTurnResult:
+    async def ask_sign_in(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """This step will specify the choices that a user interacting with the InsuranceVerification
         bot can make. The user will receive the choices and be prompted to select one. The selected 
         choice will be used by this bot (MainDialog) to begin the correct dialog desired by user.
         """
-        
+
         self.conversation_state: bot.Conversation_State = await self.conversation_state_accessor.get(
-            step_context.context, bot.Conversation_State)
+            step_context.context, bot.Conversation_State
+        )
         self.user_state: bot.UserProfile = await self.user_state_accessor.get(
             step_context.context, bot.UserProfile
         )
         if not self.user_state:
-            await step_context.context.send_activity(MessageFactory.text("Welcome to the Insurance Verification bot!"))
-            await step_context.context.send_activity(MessageFactory.text("I can assist with several insurance verification tasks. Before getting started, I'll need some quick information about you to help me answer your inquiries."))
-            return await step_context.begin_dialog(self.workflows[-1].dialog_id)
-        print(self.user_state)
-        return await step_context.prompt(
-            ChoicePrompt.__name__,
-            PromptOptions(
-                prompt=MessageFactory.text(
-                    f"""Hey {self.user_state.name}! I can assist with several workflows and I am adding new features all the time. Please select a workflow to get started!"""
+            await step_context.context.send_activity(
+                MessageFactory.text("Welcome to the Insurance Verification bot!")
+            )
+            await step_context.context.send_activity(
+                MessageFactory.text(
+                    "I can assist with several insurance verification tasks. Before getting started, I'll need some quick information about you to help me answer your inquiries."
+                )
+            )
+            return await step_context.prompt(
+                ConfirmPrompt.__name__,
+                options=PromptOptions(
+                    prompt=MessageFactory.text(
+                        "Do you want to sign in? Could be helpful..."
+                    )
                 ),
-                choices=[Choice(workflow.description) for workflow in self.workflows],
-                style=ListStyle.hero_card,
-            ),
-        )
+            )
+
+        else:
+            return await step_context.begin_dialog("main_loop")
+
+    async def confirm_sign_in(
+        self, step_context: WaterfallStepContext
+    ) -> DialogTurnResult:
+        if step_context.result:
+            return await step_context.begin_dialog(self.workflows[-1].dialog_id)
+        else:
+            return await step_context.begin_dialog("main_loop")
+
+    async def pass_to_workflow(
+        self, step_context: WaterfallStepContext
+    ) -> DialogTurnResult:
+        return await step_context.begin_dialog("main_loop")
+
+    async def choose_workflow(
+        self, step_context: WaterfallStepContext
+    ) -> DialogTurnResult:
+        # user does want to sign in
+        if step_context.result:
+            return await step_context.begin_dialog(self.workflows[-1].dialog_id)
+        else:
+            return await step_context.prompt(
+                ChoicePrompt.__name__,
+                PromptOptions(
+                    prompt=MessageFactory.text(
+                        f"""Hey {self.user_state.name if self.user_state.name else ''}! I can assist with several workflows and I am adding new features all the time. Please select a workflow to get started!"""
+                    ),
+                    choices=[
+                        Choice(workflow.description) for workflow in self.workflows
+                    ],
+                    style=ListStyle.hero_card,
+                ),
+            )
 
     async def begin_desired_dialog(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
-        if not step_context.result: # user set up, reprompt for main dialog
+        if not step_context.result:  # user set up, reprompt for main dialog
             return await step_context.begin_dialog("MainDialog")
-        else: # save the workflow chosen to save the state\
-            step_context.values["workflow"] = [wq for wq in self.workflows if wq == step_context.result.index][0]
-            return await step_context.begin_dialog(self.workflows[step_context.result.index].dialog_id)
+        else:  # save the workflow chosen to save the state\
+            step_context.values["workflow"] = [
+                wq for wq in self.workflows if wq == step_context.result.index
+            ][0]
+            return await step_context.begin_dialog(
+                self.workflows[step_context.result.index].dialog_id
+            )
 
     async def resume_dialog(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
-        await step_context.context.send_activity(MessageFactory.text("To start a new query, send me a message!"))
+        await step_context.context.send_activity(
+            MessageFactory.text("To start a new query, send me a message!")
+        )
         return await step_context.end_dialog()
 
-    

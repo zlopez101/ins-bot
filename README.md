@@ -2,14 +2,16 @@
 
 Bot Framework v4 multi-turn prompt bot sample
 
-This bot has been created using [Bot Framework](https://dev.botframework.com), it shows how to use the prompts classes included in `botbuilder-dialogs`.  This bot will ask for the user's name and age, then store the responses. It demonstrates a multi-turn dialog flow using a text prompt, a number prompt, and state accessors to store and retrieve values.
+This bot has been created using [Bot Framework](https://dev.botframework.com), it shows how to use the prompts classes included in `botbuilder-dialogs`. This bot will ask for the user's name and age, then store the responses. It demonstrates a multi-turn dialog flow using a text prompt, a number prompt, and state accessors to store and retrieve values.
 
 ## To try this sample
 
 - Clone the repository
+
 ```bash
 git clone https://github.com/Microsoft/botbuilder-samples.git
 ```
+
 - In a terminal, navigate to `botbuilder-samples\samples\python\05.multi-turn-prompt` folder
 - Activate your desired virtual environment
 - In the terminal, type `pip install -r requirements.txt`
@@ -40,6 +42,20 @@ sample demonstrates using a text prompt to collect the user's name, then using a
 ## Deploy the bot to Azure
 
 To learn more about deploying a bot to Azure, see [Deploy your bot to Azure](https://aka.ms/azuredeployment) for a complete list of deployment instructions.
+
+### Provision the bot resources
+
+1. az ad app create --display-name "ins-verification-bot" --password "Bandera01" --available-to-other-tenant
+
+   - appId: 2a896a89-7bd3-4e9f-a939-f8754d5737b2
+   - password: Bandera01
+
+2. az deployment sub create --template-file ""C:\Users\zachl\Codes\test-azure-deployment\my_chat_bot\deploymentTemplates\template-with-new-rg.json"" --location eastus --parameters appType="MultiTenant" appId="2a896a89-7bd3-4e9f-a939-f8754d5737b2" appSecret="Bandera01" botId="ut-ins-bot-production" botSku=F0 newAppServicePlanName="ut-ins-bot-app-service" newWebAppName="ut-ins-bot-web-app" groupName="ut-ins-bot-app" groupLocation="eastus" newAppServicePlanLocation="eastus" newAppServicePlanSku=F0 --name "ut-ins-bot-production"
+
+   - using the other test deployment template b/c might have messed this one up
+   - also add the AppPlanSku as F0 -> delete this actually
+
+3. Release the actual build
 
 ## Further reading
 

@@ -1,7 +1,6 @@
 """Utility function to help create Airtable requests"""
 
-from cgitb import reset
-from typing import List, Union, Tuple
+from typing import List, Union
 from urllib.parse import quote
 
 FILTER_ARG = "filterByFormula"
@@ -61,6 +60,7 @@ def string_contains_field_filter(field: str, value: str) -> dict:
     """
     pass
 
+
 def process_dict(dct: dict) -> str:
     """"""
     result = "?"
@@ -68,7 +68,6 @@ def process_dict(dct: dict) -> str:
         result += f"&{quote(key)}={quote(value)}"
 
     return result
-
 
 
 def select_fields(field: List[str]) -> str:

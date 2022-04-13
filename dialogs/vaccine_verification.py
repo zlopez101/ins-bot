@@ -1,21 +1,17 @@
 """Holds class that implements the CPT code check dialog"""
 
-from botbuilder.dialogs import (
-    ComponentDialog,
-    WaterfallDialog,
-    WaterfallStepContext,
-    DialogTurnResult,
-)
+import api
+from botbuilder.core import MessageFactory, StatePropertyAccessor
+from botbuilder.dialogs import DialogTurnResult, WaterfallDialog, WaterfallStepContext
 from botbuilder.dialogs.prompts import (
-    TextPrompt,
-    NumberPrompt,
     ChoicePrompt,
     ConfirmPrompt,
+    NumberPrompt,
     PromptOptions,
+    TextPrompt,
 )
-from botbuilder.core import MessageFactory, StatePropertyAccessor
-
-from insurance_checker import async_api, checker, models
+import checker
+from models.api import Insurance
 
 from dialogs.base_dialog import BaseDialog
 from dialogs.coverage_selection import Coverage_Selection
@@ -41,7 +37,7 @@ class Vaccine_Verification_Dialog(BaseDialog):
                     self.cpt_step,
                     self.confirmation_step,
                     self.inquiry_results_step,
-                    self.finish_combination
+                    self.finish_combination,
                 ],
             )
         )
@@ -55,7 +51,7 @@ class Vaccine_Verification_Dialog(BaseDialog):
         )
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Check if a vaccine is covered in the office"
-        self.returns = models.Insurance
+        self.returns = Insurance
 
     async def call_coverage_selection(
         self, step_context: WaterfallStepContext
@@ -67,7 +63,7 @@ class Vaccine_Verification_Dialog(BaseDialog):
 
     async def cpt_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Ask for the CPT code to check"""
-        step_context.values['coverage'] = step_context.result
+        step_context.values["coverage"] = step_context.result
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(
@@ -80,13 +76,13 @@ class Vaccine_Verification_Dialog(BaseDialog):
     ) -> DialogTurnResult:
         """Confirms with user that the correct code was selected"""
         async with self.session as session:
-            cpt_code, _ = await async_api.get_cpt_code_by_code(
+            cpt_code, _ = await api.codes.get_cpt_code_by_code(
                 session, step_context.result
             )
         # if the API call was successful
         if cpt_code:
             self.conversation_state.cpt_code = cpt_code[0]
-        
+
             return await step_context.prompt(
                 ConfirmPrompt.__name__,
                 PromptOptions(
@@ -109,7 +105,7 @@ class Vaccine_Verification_Dialog(BaseDialog):
         """Display inquiry results"""
         if step_context.result:  # the code/insurance combo is correct
             if checker.check_cpt_code_insurance_age_combination(
-                self.conversation_state.cpt_code, step_context.values['coverage']
+                self.conversation_state.cpt_code, step_context.values["coverage"]
             ):
                 await step_context.context.send_activity(
                     MessageFactory.text(
