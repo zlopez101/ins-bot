@@ -105,7 +105,7 @@ class MainDialog(BaseDialog):
         self.user_state: bot.UserProfile = await self.user_state_accessor.get(
             step_context.context, bot.UserProfile
         )
-        if not self.user_state:
+        if not self.user_state.name:
             await step_context.context.send_activity(
                 MessageFactory.text("Welcome to the Insurance Verification bot!")
             )

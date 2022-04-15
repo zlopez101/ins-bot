@@ -1,57 +1,37 @@
-# Multi-turn prompt
+# Ins-bot
 
-Bot Framework v4 multi-turn prompt bot sample
+This is a microsoft teams bot built for handling insurance verification workflows that are commonly requested from clinics. These tasks are often repetitive, and involve simple look ups that a bot (me!) should be able to do without human supervision. I take the end-user'a (typically a PAR, MA, or RN) provided info and perform simple lookups on an airtable API. The airtable would be maintained by the insurance verification team to be up-to-date. I am envisioning a monthly confirmation on all coverages.
 
-This bot has been created using [Bot Framework](https://dev.botframework.com), it shows how to use the prompts classes included in `botbuilder-dialogs`. This bot will ask for the user's name and age, then store the responses. It demonstrates a multi-turn dialog flow using a text prompt, a number prompt, and state accessors to store and retrieve values.
+## How Do I work?
 
-## To try this sample
+I am running in an Azure Python Web App! The app has /api/messages endpoint that the bot posts to. From there, the DialogBot(ActivityHandler) class manages a dialog workflow that answers end-user questions.
 
-- Clone the repository
+## Who are my customers?
 
-```bash
-git clone https://github.com/Microsoft/botbuilder-samples.git
-```
+End-users would be PAR, MA, RN, or other clinic staff handling insurance-related tasks
 
-- In a terminal, navigate to `botbuilder-samples\samples\python\05.multi-turn-prompt` folder
-- Activate your desired virtual environment
-- In the terminal, type `pip install -r requirements.txt`
-- Run your bot with `python app.py`
-
-## Testing the bot using Bot Framework Emulator
-
-[Bot Framework Emulator](https://github.com/microsoft/botframework-emulator) is a desktop application that allows bot developers to test and debug their bots on localhost or running remotely through a tunnel.
-
-- Install the latest Bot Framework Emulator from [here](https://github.com/Microsoft/BotFramework-Emulator/releases)
-
-### Connect to the bot using Bot Framework Emulator
-
-- Launch Bot Framework Emulator
-- File -> Open Bot
-- Enter a Bot URL of `http://localhost:3978/api/messages`
-
-## Interacting with the bot
-
-A conversation between a bot and a user often involves asking (prompting) the user for information, parsing the user's response,
-and then acting on that information. This sample demonstrates how to prompt users for information using the different prompt types
-included in the [botbuilder-dialogs](https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-concept-dialog?view=azure-bot-service-4.0) library
-and supported by the SDK.
-
-The `botbuilder-dialogs` library includes a variety of pre-built prompt classes, including text, number, and datetime types. This
-sample demonstrates using a text prompt to collect the user's name, then using a number prompt to collect an age.
-
-## Deploy the bot to Azure
+## Deploy the bot to Azure if your name is Zach
 
 To learn more about deploying a bot to Azure, see [Deploy your bot to Azure](https://aka.ms/azuredeployment) for a complete list of deployment instructions.
 
 ### Provision the bot resources
 
-1. az ad app create --display-name "ins-verification-bot" --password "Bandera01" --available-to-other-tenant
+0. Configure Virtual Environment
 
-   - appId: 2a896a89-7bd3-4e9f-a939-f8754d5737b2
-   - password: Bandera01
+   - only started these notes _after_ installing `pytest-aiohttp`
+   - use `botbuilder 4.14.2`
+   - those modules require that 3.6.2 < `aiohttp` < 3.8.0
+   - but `pytest-aiohttp` wants 3.8.1 - something to keep in mind
+   - still seems to be working locally for dev purposes
 
-2. az deployment sub create --template-file ""C:\Users\zachl\Codes\test-azure-deployment\my_chat_bot\deploymentTemplates\template-with-new-rg.json"" --location eastus --parameters appType="MultiTenant" appId="2a896a89-7bd3-4e9f-a939-f8754d5737b2" appSecret="Bandera01" botId="ut-ins-bot-production" botSku=F0 newAppServicePlanName="ut-ins-bot-app-service" newWebAppName="ut-ins-bot-web-app" groupName="ut-ins-bot-app" groupLocation="eastus" newAppServicePlanLocation="eastus" newAppServicePlanSku=F0 --name "ut-ins-bot-production"
+1. az ad app create --display-name "ins-verification-bot" --password "<password>" --available-to-other-tenant
 
+   - appId: <appId>
+   - password: <password>
+
+2. az deployment sub create --template-file ""C:\Users\zachl\Codes\test-azure-deployment\my_chat_bot\deploymentTemplates\template-with-new-rg.json"" --location eastus --parameters appId="<appId>" appSecret="<password>" botId="ut-ins-bot-production" botSku=F0 newAppServicePlanName="ut-ins-bot-app-service" newWebAppName="ut-ins-bot-web-app" groupName="ut-ins-bot-app" groupLocation="eastus" newAppServicePlanLocation="eastus" newAppServicePlanSku=F0 --name "ut-ins-bot-production"
+
+   - multi tenant appType causes command to fail
    - using the other test deployment template b/c might have messed this one up
    - also add the AppPlanSku as F0 -> delete this actually
 

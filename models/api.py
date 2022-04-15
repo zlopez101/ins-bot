@@ -2,13 +2,12 @@
 from dataclasses import dataclass
 from typing import List
 
-@dataclass
+
+@dataclass(order=True)
 class Base:
     @classmethod
     def from_api(cls, data: dict):
         """data from the api comes in the form
-
-
         {
            "id": "ASDFDSAFSDJH",
            "fields": {
@@ -24,7 +23,12 @@ class Base:
         Returns:
             Object Instance
         """
-        return cls(data.get("id"), **data.pop("fields"))
+        # catch the API errors
+        try:
+            return cls(data.get("id"), **data.pop("fields"))
+        except KeyError as e:
+            print(data)
+            raise e
 
     @staticmethod
     def custom_factory(data):
@@ -35,9 +39,9 @@ class Base:
 
         return dict((k, convert_value(v)) for k, v in data)
 
+
 @dataclass
 class Insurance(Base):
-
     id: str
     insurance_name: str
     payer_name: str
@@ -48,6 +52,7 @@ class Insurance(Base):
 
     def __str__(self):
         return self.insurance_name
+
 
 @dataclass
 class CPT_code(Base):
@@ -63,6 +68,7 @@ class CPT_code(Base):
     coverage_exceptions: List[str] = None
     AuthorizationRequired: bool = False
 
+
 @dataclass
 class Provider(Base):
 
@@ -73,5 +79,5 @@ class Provider(Base):
     Specialty: str
 
     def __str__(self) -> str:
-        last, first = self.Provider.split(', ')
+        last, first = self.Provider.split(", ")
         return f"{first.capitalize()} {last.capitalize()}"

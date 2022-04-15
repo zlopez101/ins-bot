@@ -1,4 +1,5 @@
 from botbuilder.core import ActivityHandler, ConversationState, TurnContext, UserState
+from botbuilder.core.teams import TeamsActivityHandler
 from helpers.dialog_helper import DialogHelper
 from botbuilder.core.channel_service_handler import ChannelAccount
 from botbuilder.core import TurnContext
@@ -8,6 +9,8 @@ from dialogs import main_dialog
 
 from models import bot
 
+class TeamsBot(TeamsActivityHandler):
+    pass
 
 class DialogBot(ActivityHandler):
     """

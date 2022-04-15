@@ -57,7 +57,6 @@ class Coverage_Selection(BaseDialog):
         """Have the user select a payer from a list"""
         await self.state_set_up(step_context)
         async with self.session as session:
-            payers = api.coverages.get_payers(session)
             self.payers = await api.coverages.get_payers(session)
 
         return await step_context.prompt(

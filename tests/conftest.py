@@ -1,8 +1,15 @@
-from os import stat
-from unittest.mock import Mock
 import pytest
 import requests
 import json
+
+from app import make_app
+
+# from aiohttp testing docs
+@pytest.fixture
+async def cli(event_loop, aiohttp_client):
+    app = await make_app()
+    c = await aiohttp_client(app)
+    return event_loop.run_until_complete(c)
 
 
 class MockResponse:

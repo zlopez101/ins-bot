@@ -1,4 +1,4 @@
-"""Implements all the necessary insurance coverage calls to the Airtable API"""
+"""Implements all coverage calls to the Airtable API"""
 
 from typing import List, Tuple
 from aiohttp import ClientSession, ClientResponse
@@ -17,7 +17,7 @@ from .methods import _raise_for_status, _list_records, _retrieve_record
 async def get_payers(session: ClientSession) -> List[str]:
     """Get the payer names. This method won"""
     coverages, _ = await _list_records(session, URL.INS_URL.value, Insurance)
-    return list(set([coverage.payer_name for coverage in coverages]))
+    return sorted(set([coverage.payer_name for coverage in coverages]))
 
 
 async def get_coverages_by_payer_name(
@@ -76,28 +76,4 @@ async def get_financial_classes_by_name(session: ClientSession, name: str) -> di
     pass
     # async with session.get(URL.FC_URL.value, params=exact_value_filter('name', name)) as resp:
     # r
-
-
-async def get_locations(session: ClientSession) -> List[str]:
-    """Get the CBC locations
-
-    Args:
-        session (ClientSession): session to use
-        
-    Returns:
-        List[str]: List of locations
-    """
-    async with session.get(URL.PROVIDER_URL.value) as resp:
-        results = await resp.json()
-        records = results["records"]
-        return list(set([record["fields"]["Location"] for record in records]))
-
-
-async def get_providers_at_location(
-    session: ClientSession, location: str
-) -> List[Provider]:
-    async with session.get(
-        URL.PROVIDER_URL.value, params=exact_value_filter("Location", location)
-    ) as resp:
-        return await _raise_for_status(resp, Provider)
 

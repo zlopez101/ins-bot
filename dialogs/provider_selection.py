@@ -81,7 +81,6 @@ class Provider_Selection(BaseDialog):
         )
 
     async def finish(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        print(step_context.result)
         return await step_context.end_dialog(
             step_context.values["providers"][step_context.result.index]
         )

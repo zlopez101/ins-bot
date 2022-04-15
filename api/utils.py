@@ -42,6 +42,10 @@ class Session:
         del self.session
 
 
+def sort_reponse(field: str, order: str = "asc"):
+    quote()
+
+
 def exact_value_filter(field: str, value: str, asdict=True) -> Union[dict, str]:
     """Airtable has a specific filterbyformula specification.
     This helper function creates the proper string
