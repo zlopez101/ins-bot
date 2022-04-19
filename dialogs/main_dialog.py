@@ -20,8 +20,9 @@ from dialogs.user_profile import User_Profile_Dialog
 from dialogs.base_dialog import BaseDialog
 from dialogs.provider_network_status import Provider_Network_Status
 from botbuilder.dialogs.choices.list_style import ListStyle
-
+from botbuilder.azure import CosmosDbPartitionedStorage
 from models import bot
+from models.dialog import write_conversation_to_storage
 
 
 class Workflow:
@@ -45,9 +46,14 @@ class Workflow:
 class MainDialog(BaseDialog):
     """The Main Dialog"""
 
-    def __init__(self, user_profile_accessor: StatePropertyAccessor):
+    def __init__(
+        self,
+        user_profile_accessor: StatePropertyAccessor,
+        storage: CosmosDbPartitionedStorage,
+    ):
 
         super().__init__(MainDialog.__name__, user_profile_accessor)
+        self.storage = storage
         self.add_dialog(
             WaterfallDialog(
                 "main_loop",
@@ -94,7 +100,7 @@ class MainDialog(BaseDialog):
         self.user_state: bot.UserProfile = await self.user_profile_accessor.get(
             step_context.context, bot.UserProfile
         )
-        if not self.user_state.name:
+        if not (self.user_state.first and self.user_state.last):
             await step_context.context.send_activity(
                 MessageFactory.text("Welcome to the Insurance Verification bot!")
             )
@@ -139,7 +145,7 @@ class MainDialog(BaseDialog):
                 ChoicePrompt.__name__,
                 PromptOptions(
                     prompt=MessageFactory.text(
-                        f"""Hey {self.user_state.name if self.user_state.name else ''}! I can assist with several workflows and I am adding new features all the time. Please select a workflow to get started!"""
+                        f"""Hey {self.user_state.first if self.user_state.first else ''}! I can assist with several workflows and I am adding new features all the time. Please select a workflow to get started!"""
                     ),
                     choices=[
                         Choice(workflow.description) for workflow in self.workflows
@@ -165,9 +171,18 @@ class MainDialog(BaseDialog):
     async def resume_dialog(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
-
+        if step_context.result:
+            reference_num = await write_conversation_to_storage(
+                step_context.result, self.storage
+            )
+            print(reference_num)
+            await step_context.context.send_activity(
+                MessageFactory.text(
+                    f"The reference number for this inquiry is: {reference_num}"
+                )
+            )
         await step_context.context.send_activity(
-            MessageFactory.text("To start a new query, send me a message!")
+            MessageFactory.text("To start a new query, send me any message!")
         )
         return await step_context.end_dialog()
 

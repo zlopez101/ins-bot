@@ -54,12 +54,16 @@ class User_Profile_Dialog(BaseDialog):
         return await step_context.prompt(
             TextPrompt.__name__,
             options=PromptOptions(
-                prompt=MessageFactory.text("Please enter your preferred first name")
+                prompt=MessageFactory.text(
+                    "Please enter your name as LAST NAME, FIRST NAME format."
+                )
             ),
         )
 
     async def clinic_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        step_context.values["name"] = step_context.result
+        last, first = step_context.result.split(",")
+        step_context.values["last"] = last.strip()
+        step_context.values["first"] = first.strip()
         return await step_context.begin_dialog(
             "LocationSelectionDialog", step_context.values
         )
@@ -122,7 +126,7 @@ class User_Profile_Dialog(BaseDialog):
             ConfirmPrompt.__name__,
             options=PromptOptions(
                 prompt=MessageFactory.text(
-                    f"{step_context.values['name']}, I will save your profile as a {step_context.values['role']} at the primary location of {step_context.values['location']}. Is that correct?"
+                    f"{step_context.values['first']} {step_context.values['last']}, I will save your profile as a {step_context.values['role']} at the primary location of {step_context.values['location']}. Is that correct?"
                 )
             ),
         )

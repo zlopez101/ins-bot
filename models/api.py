@@ -24,11 +24,17 @@ class Base:
             Object Instance
         """
         # catch the API errors
-        try:
-            return cls(data.get("id"), **data.pop("fields"))
-        except KeyError as e:
-            print(data)
-            raise e
+        if data:
+            try:
+                return cls(data.get("id"), **data.pop("fields"))
+            except KeyError as e:
+                # likely a fields KeyError, meaning that
+                print('something else went wrong')
+                raise e
+        else:
+            # there is no data corresponding to that inquiry
+            return None
+
 
     @staticmethod
     def custom_factory(data):

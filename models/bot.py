@@ -19,7 +19,8 @@ class Conversation_State:
 @dataclass
 class UserProfile:
 
-    name: str = None
+    first: str = None
+    last: str = None
     role: str = None
     location: str = None
 
