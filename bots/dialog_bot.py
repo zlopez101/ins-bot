@@ -9,8 +9,10 @@ from dialogs import main_dialog
 
 from models import bot
 
+
 class TeamsBot(TeamsActivityHandler):
     pass
+
 
 class DialogBot(ActivityHandler):
     """
@@ -36,14 +38,8 @@ class DialogBot(ActivityHandler):
         self.conversation_state = conversation_state
         self.user_state = user_state
 
-        self.user_state_accessor = self.user_state.create_property("User State")
-        self.conversation_state_accessor = self.conversation_state.create_property(
-            "Conversation State"
-        )
-        self.dialog = main_dialog.MainDialog(
-            self.user_state_accessor, self.conversation_state_accessor
-        )
-        self.turn = 0
+        self.user_profile_accessor = self.user_state.create_property("User Profile")
+        self.dialog = main_dialog.MainDialog(self.user_profile_accessor)
 
     async def on_turn(self, turn_context: TurnContext):
         await super().on_turn(turn_context)
@@ -58,15 +54,15 @@ class DialogBot(ActivityHandler):
             self.conversation_state.create_property("DialogState"),
         )
 
+    async def on_end_of_conversation_activity(self, turn_context: TurnContext):
+        print("end of conversation")
+        return await super().on_end_of_conversation_activity(turn_context)
+
     async def on_members_added_activity(
         self, members_added: ChannelAccount, turn_context: TurnContext
     ):
         for member_added in members_added:
             if member_added.id != turn_context.activity.recipient.id:
-                await self.conversation_state_accessor.get(
-                    turn_context, bot.Conversation_State
-                )
-                await self.user_state_accessor.get(turn_context, bot.UserProfile)
                 await DialogHelper.run_dialog(
                     self.dialog,
                     turn_context,

@@ -49,9 +49,7 @@ class Insurance(Base):
     network_status: str = None
     referral_required: str = None
     plan_type: str = None
-
-    def __str__(self):
-        return self.insurance_name
+    time_requested: int = 0
 
 
 @dataclass

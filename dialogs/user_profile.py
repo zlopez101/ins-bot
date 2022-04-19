@@ -20,16 +20,8 @@ import api
 
 
 class User_Profile_Dialog(BaseDialog):
-    def __init__(
-        self,
-        user_state_accessor: StatePropertyAccessor,
-        conversation_state_accesor: StatePropertyAccessor,
-    ):
-        super().__init__(
-            User_Profile_Dialog.__name__,
-            user_state_accessor,
-            conversation_state_accesor,
-        )
+    def __init__(self, user_profile_accessor: StatePropertyAccessor):
+        super().__init__(User_Profile_Dialog.__name__, user_profile_accessor)
 
         self.add_dialog(
             WaterfallDialog(
@@ -137,7 +129,7 @@ class User_Profile_Dialog(BaseDialog):
 
     async def save_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         if step_context.result:
-            await self.user_state_accessor.set(
+            await self.user_profile_accessor.set(
                 step_context.context, UserProfile(**step_context.values)
             )
             await step_context.context.send_activity(

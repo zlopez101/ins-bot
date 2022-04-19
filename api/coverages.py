@@ -1,17 +1,14 @@
 """Implements all coverage calls to the Airtable API"""
 
 from typing import List, Tuple
-from aiohttp import ClientSession, ClientResponse
-from models.api import Insurance, CPT_code, Provider
+from aiohttp import ClientSession
+from models.api import Insurance
 from .utils import (
     exact_value_filter,
-    select_fields,
-    filter_unique,
     multiple_exact_value_filter,
     URL,
-    HEADERS,
 )
-from .methods import _raise_for_status, _list_records, _retrieve_record
+from .methods import _list_records, _retrieve_record, _patch_record
 
 
 async def get_payers(session: ClientSession) -> List[str]:
@@ -63,17 +60,43 @@ async def get_coverage_by_id(session: ClientSession, id: str) -> Insurance:
 
 
 async def get_coverage_by_name(session: ClientSession, name: str) -> Insurance:
-    return await _list_records(
+    """Get the coverage by the name selected by user
+
+    Args
+        name (str): name of the insurance the user selected
+
+    Returns:
+        Insurance: Insurance object to be returned. 
+    """
+    records, offset = await _list_records(
         session,
         URL.INS_URL.value,
         Insurance,
         params=exact_value_filter("insurance_name", name),
     )
+    # the patching of the record does not affect the user. the `GET` object
+    # is the one returned
+    await _patch_record(
+        session,
+        URL.INS_URL.value,
+        records[0].id,
+        {"time_requested": records[0].time_requested + 1,},
+    )
+    return records, offset
 
 
 async def get_financial_classes_by_name(session: ClientSession, name: str) -> dict:
     """TBD"""
     pass
-    # async with session.get(URL.FC_URL.value, params=exact_value_filter('name', name)) as resp:
-    # r
 
+
+if __name__ == "__main__":
+    from .utils import HEADERS
+    import asyncio
+
+    async def main():
+        async with ClientSession(headers=HEADERS) as session:
+            record = await get_coverage_by_name(session, "BCBSTX UT Select PPO")
+            print(record)
+
+    asyncio.run(main())

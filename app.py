@@ -79,15 +79,16 @@ cosmos_config = CosmosDbPartitionedConfig(
     compatibility_mode=False,
 )
 
-USER_MEMORY = CosmosDbPartitionedStorage(cosmos_config)
+AZURE_MEMORY = CosmosDbPartitionedStorage(cosmos_config)
+# AZURE_USER_STATE = UserState(AZURE_MEMORY)
+AZURE_USER_DATA = UserState(AZURE_MEMORY)
 
-
+# in-memory conversation data
 MEMORY = MemoryStorage()
 USER_STATE = UserState(MEMORY)
 CONVERSATION_STATE = ConversationState(MEMORY)
 
 # create main dialog and bot
-# DIALOG = MainDialog(USER_STATE, CONVERSATION_STATE)
 BOT = DialogBot(CONVERSATION_STATE, USER_STATE)
 
 
