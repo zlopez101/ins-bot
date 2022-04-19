@@ -117,7 +117,7 @@ async def messages(req: Request) -> Response:
 
 
 async def home_handler(req: Request) -> Response:
-    return Response(body="Hello World! Logging configured\")
+    return Response(body="Hello World! Logging configured")
 
 
 APP = web.Application(middlewares=[aiohttp_error_middleware])
