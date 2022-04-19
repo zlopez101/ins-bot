@@ -51,5 +51,6 @@ class Provider_Network_Status(BaseDialog):
                 f"This is where we check the provider {step_context.result}'s status with the plan {step_context.values['coverage']}."
             )
         )
-        return await step_context.end_dialog()
+        result = Provider_Network_Status.create(self.user_state, **step_context.values)
+        return await step_context.end_dialog(result)
 

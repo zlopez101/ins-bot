@@ -3,11 +3,8 @@ from botbuilder.core.teams import TeamsActivityHandler
 from helpers.dialog_helper import DialogHelper
 from botbuilder.core.channel_service_handler import ChannelAccount
 from botbuilder.core import TurnContext
-
+from botbuilder.azure import CosmosDbPartitionedStorage
 from dialogs import main_dialog
-
-
-from models import bot
 
 
 class TeamsBot(TeamsActivityHandler):
@@ -24,7 +21,7 @@ class DialogBot(ActivityHandler):
     """
 
     def __init__(
-        self, conversation_state: ConversationState, user_state: UserState,
+        self, conversation_state: ConversationState, user_state: UserState, storage: CosmosDbPartitionedStorage
     ):
         if conversation_state is None:
             raise TypeError(
@@ -39,7 +36,7 @@ class DialogBot(ActivityHandler):
         self.user_state = user_state
 
         self.user_profile_accessor = self.user_state.create_property("User Profile")
-        self.dialog = main_dialog.MainDialog(self.user_profile_accessor)
+        self.dialog = main_dialog.MainDialog(self.user_profile_accessor, storage)
 
     async def on_turn(self, turn_context: TurnContext):
         await super().on_turn(turn_context)

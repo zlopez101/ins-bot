@@ -1,4 +1,4 @@
-from typing import Union
+from typing import List, Union
 from datetime import datetime
 from .bot import UserProfile
 from .api import Insurance, Provider, CPT_code
@@ -14,13 +14,18 @@ class _Model(UserProfile):
 
     @classmethod
     def create(cls, user_profile: UserProfile, **kwargs):
+        kwargs = {k: v for k, v in kwargs.items() if hasattr(cls, k)}
         return cls(**asdict(user_profile), **kwargs)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
 
 
 @dataclass
 class ProviderNetworkStatus(_Model, UserProfile):
     workflow: str = "Provider Network Status"
     provider: Provider = None
+    in_network: bool = True
 
 
 @dataclass
@@ -32,7 +37,7 @@ class ReferralRequired(_Model, UserProfile):
 @dataclass
 class VaccineVerification(_Model, UserProfile):
     workflow: str = "Vaccine Verification"
-    code: CPT_code = None
+    codes_checked: List[CPT_code] = None
 
 
 @dataclass
@@ -65,14 +70,17 @@ async def write_conversation_to_storage(
         ProviderNetworkStatus,
     ],
     storage: CosmosDbStorage,
-) -> str:
+) -> int:
     """Write the conversation to storage, and return the e_tag attribute as a reference # for the user
 
     Args:
         item (ConversationItem): Conversation Item to store
 
     Returns:
-        str: e_tag reference #
+        int: hash of workflow, time, and user name
     """
-    await storage.write(conversation)
+    initials = conversation.first[0] + conversation.last[0]
 
+    storage_id = "@".join([initials, conversation.time.strftime("%y%j%H%M"),])
+    await storage.write({storage_id: conversation.to_dict()})
+    return storage_id

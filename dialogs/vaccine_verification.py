@@ -12,7 +12,7 @@ from botbuilder.dialogs.prompts import (
 )
 import checker
 from models.api import Insurance
-
+from models.dialog import VaccineVerification
 from dialogs.base_dialog import BaseDialog
 from dialogs.coverage_selection import Coverage_Selection
 
@@ -47,9 +47,15 @@ class Vaccine_Verification_Dialog(BaseDialog):
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
         """Call the coverage selection dialog to have user select insurance"""
-
         await self.state_set_up(step_context)
-        return await step_context.begin_dialog(Coverage_Selection.__name__)
+        step_context.values["codes_checked"] = []
+        if step_context.options:
+            step_context.values.update(step_context.options)
+        if not step_context.values.get("coverage"):
+            return await step_context.begin_dialog(Coverage_Selection.__name__)
+        else:
+            # call the next step and pass in the the previously selected coverage
+            return await step_context.next(step_context.values["coverage"])
 
     async def cpt_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Ask for the CPT code to check"""
@@ -71,13 +77,16 @@ class Vaccine_Verification_Dialog(BaseDialog):
             )
         # if the API call was successful
         if cpt_code:
-            self.conversation_state.cpt_code = cpt_code[0]
-
+            # set up
+            step_context.values["code to report index"] = len(
+                step_context.values["codes_checked"]
+            )
+            step_context.values["codes_checked"].append(cpt_code[0])
             return await step_context.prompt(
                 ConfirmPrompt.__name__,
                 PromptOptions(
                     prompt=MessageFactory.text(
-                        f"You are checking if the code {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is covered by {step_context.values['coverage'].insurance_name}. Is this correct?"
+                        f"You are checking if the code {cpt_code[0].name} (CPT {cpt_code[0].code}) is covered by {step_context.values['coverage'].insurance_name}. Is this correct?"
                     )
                 ),
             )
@@ -87,26 +96,31 @@ class Vaccine_Verification_Dialog(BaseDialog):
                     f"{step_context.result} code is not found in the database, please try again"
                 )
             )
-            return await step_context.replace_dialog(WaterfallDialog.__name__)
+            return await step_context.replace_dialog(
+                WaterfallDialog.__name__, options=step_context.values
+            )
 
     async def inquiry_results_step(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
         """Display inquiry results"""
         if step_context.result:  # the code/insurance combo is correct
+            current_code = step_context.values["codes_checked"][
+                step_context.values["code to report index"]
+            ]
             if checker.check_cpt_code_insurance_age_combination(
-                self.conversation_state.cpt_code, step_context.values["coverage"]
+                current_code, step_context.values["coverage"]
             ):
                 await step_context.context.send_activity(
                     MessageFactory.text(
                         # f"The cpt code {result['code']} is {result['covered?']} by the insurance {result['insurance']}.{result.get('explanation', '')} To query another insurance and cpt code combination, send me a message. Thanks!"
-                        f"Yes, the vaccine {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is covered by {step_context.values['coverage'].insurance_name}."
+                        f"Yes, the vaccine {current_code.name} (CPT {current_code.code}) is covered by {step_context.values['coverage'].insurance_name}."
                     )
                 )
             else:  # there is some exception
                 await step_context.context.send_activity(
                     MessageFactory.text(
-                        f"The vaccine {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is **NOT** covered by {step_context.values['coverage'].insurance_name}."
+                        f"The vaccine {current_code.name} (CPT {current_code.code}) is **NOT** covered by {step_context.values['coverage'].insurance_name}."
                     )
                 )
 
@@ -115,7 +129,7 @@ class Vaccine_Verification_Dialog(BaseDialog):
                 ConfirmPrompt.__name__,
                 PromptOptions(
                     prompt=MessageFactory.text(
-                        "Do you want to lookup if another code is covered?"
+                        "Do you want to lookup if another code is covered for the same patient?"
                     )
                 ),
             )
@@ -133,6 +147,9 @@ class Vaccine_Verification_Dialog(BaseDialog):
     ) -> DialogTurnResult:
 
         if step_context.result:
-            return await step_context.begin_dialog(self.initial_dialog_id)
+            return await step_context.begin_dialog(
+                self.initial_dialog_id, options=step_context.values
+            )
         else:
-            return await step_context.end_dialog()
+            result = VaccineVerification.create(self.user_state, **step_context.values)
+            return await step_context.end_dialog(result)

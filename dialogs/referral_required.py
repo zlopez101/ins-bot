@@ -44,8 +44,8 @@ class Referral_Required_Dialog(BaseDialog):
         await step_context.context.send_activity(
             MessageFactory.text(f"{coverage.insurance_name} {language} a referral.")
         )
-        documentation = ReferralRequired.create(
+        result = ReferralRequired.create(
             self.user_state, coverage=coverage, required=ref_required
         )
-        return await step_context.end_dialog(documentation)
+        return await step_context.end_dialog(result)
 
