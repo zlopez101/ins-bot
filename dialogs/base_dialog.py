@@ -24,24 +24,16 @@ import api
 
 
 class BaseDialog(ComponentDialog):
-    def __init__(
-        self,
-        name: str,
-        user_state_accessor: StatePropertyAccessor,
-        conversation_state_accesor: StatePropertyAccessor,
-    ):
+    def __init__(self, name: str, user_profile_accessor: StatePropertyAccessor):
 
         super().__init__(name)
         self.name = name
         self.session = api.utils.Session()
-        self.conversation_state_accessor = conversation_state_accesor
-        self.user_state_accessor = user_state_accessor
+        self.user_profile_accessor = user_profile_accessor
 
     async def state_set_up(self, step_context: WaterfallStepContext):
-        self.conversation_state: Conversation_State = await self.conversation_state_accessor.get(
-            step_context.context
-        )
-        self.user_state: UserProfile = await self.user_state_accessor.get(
+
+        self.user_state: UserProfile = await self.user_profile_accessor.get(
             step_context.context
         )
 
@@ -49,7 +41,6 @@ class BaseDialog(ComponentDialog):
         result = await self.interrupt(inner_dc)
         if result is not None:
             return result
-
         return await super().on_continue_dialog(inner_dc)
 
     async def interrupt(self, inner_dc: DialogContext) -> DialogTurnResult:

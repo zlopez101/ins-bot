@@ -1,0 +1,8 @@
+insurance_name fld3M8V6KbBFjUgHr
+financial_class fldZ7V5DUQDlkYpPJ
+network_status fldr7FHol9oxdXcjR
+CPT code exceptions fldtHuB0aDAmLDm8wText
+referral_required fldtJOC0bKljdhFqMText
+plan_type fldHmtktwycvS60y4
+payer_name fld1GHyujTzf6Waph
+time_requested fldGdVPylch3Y70OgNumber

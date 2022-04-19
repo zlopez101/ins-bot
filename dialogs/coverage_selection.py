@@ -23,14 +23,8 @@ from dialogs.base_dialog import BaseDialog
 class Coverage_Selection(BaseDialog):
     """Implements the coverage selection process and returns a coverage to be consumed by dialog that called it"""
 
-    def __init__(
-        self,
-        user_state_accessor: StatePropertyAccessor,
-        conversation_state_accesor: StatePropertyAccessor,
-    ):
-        super().__init__(
-            Coverage_Selection.__name__, user_state_accessor, conversation_state_accesor
-        )
+    def __init__(self, user_profile_accessor: StatePropertyAccessor):
+        super().__init__(Coverage_Selection.__name__, user_profile_accessor)
 
         self.add_dialog(
             WaterfallDialog("OuterDialog", [self.payer_name_step, self.begin_inner],)
@@ -79,15 +73,15 @@ class Coverage_Selection(BaseDialog):
             step_context.values.update(step_context.options)
         else:
             async with self.session as session:
-                step_context.values["payers"] = await api.coverages.get_payers(session)
+                step_context.values["payers"] = sorted(
+                    await api.coverages.get_payers(session)
+                )
                 step_context.values["beg"] = 0
                 step_context.values["end"] = 5
 
-        payers = sorted(
-            step_context.values["payers"][
-                step_context.values["beg"] : step_context.values["end"]
-            ]
-        )
+        payers = step_context.values["payers"][
+            step_context.values["beg"] : step_context.values["end"]
+        ]
 
         if not payers:
             await step_context.context.send_activity(

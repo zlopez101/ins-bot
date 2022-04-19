@@ -8,11 +8,10 @@ from .api import Insurance
 @dataclass
 class Conversation_State:
 
-    patient: int = None
+    workflow: str = None
     patient_age: int = None
     coverage: Insurance = None
     provider: int = None
-    location: str = None
     cpt_code: List[int] = None
     payer: str = None
 
@@ -23,7 +22,6 @@ class UserProfile:
     name: str = None
     role: str = None
     location: str = None
-    choices_to_display: int = 5
 
 
 class ChoiceLooper:
