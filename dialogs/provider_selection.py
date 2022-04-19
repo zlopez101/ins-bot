@@ -23,14 +23,8 @@ from dialogs.base_dialog import BaseDialog
 class Provider_Selection(BaseDialog):
     """Provider Selection Dialog. Returns a provider object to the calling Dialog"""
 
-    def __init__(
-        self,
-        user_state_accessor: StatePropertyAccessor,
-        conversation_state_accesor: StatePropertyAccessor,
-    ):
-        super().__init__(
-            Provider_Selection.__name__, user_state_accessor, conversation_state_accesor
-        )
+    def __init__(self, user_profile_accessor: StatePropertyAccessor):
+        super().__init__(Provider_Selection.__name__, user_profile_accessor)
 
         self.add_dialog(
             WaterfallDialog(

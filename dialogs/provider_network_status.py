@@ -11,30 +11,20 @@ from dialogs.base_dialog import BaseDialog
 from dialogs.coverage_selection import Coverage_Selection
 from dialogs.provider_selection import Provider_Selection
 
+from models.dialog import ProviderNetworkStatus
+
 
 class Provider_Network_Status(BaseDialog):
-    def __init__(
-        self,
-        user_state_accessor: StatePropertyAccessor,
-        conversation_state_accessor: StatePropertyAccessor,
-    ):
-        super().__init__(
-            Provider_Network_Status.__name__,
-            user_state_accessor,
-            conversation_state_accessor,
-        )
+    def __init__(self, user_profile_accessor: StatePropertyAccessor):
+        super().__init__(Provider_Network_Status.__name__, user_profile_accessor)
         self.add_dialog(
             WaterfallDialog(
                 WaterfallDialog.__name__,
                 [self.get_coverage, self.get_provider, self.check_network_status],
             )
         )
-        self.add_dialog(
-            Coverage_Selection(self.user_state_accessor, conversation_state_accessor)
-        )
-        self.add_dialog(
-            Provider_Selection(user_state_accessor, conversation_state_accessor)
-        )
+        self.add_dialog(Coverage_Selection(self.user_profile_accessor))
+        self.add_dialog(Provider_Selection(user_profile_accessor))
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Is my provider in-network with patient's insurance?"
         self.returns = None
@@ -61,5 +51,6 @@ class Provider_Network_Status(BaseDialog):
                 f"This is where we check the provider {step_context.result}'s status with the plan {step_context.values['coverage']}."
             )
         )
-        return await step_context.end_dialog()
+        result = Provider_Network_Status.create(self.user_state, **step_context.values)
+        return await step_context.end_dialog(result)
 

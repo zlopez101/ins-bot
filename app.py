@@ -25,6 +25,7 @@ from bots import DialogBot
 
 from botbuilder.azure import CosmosDbPartitionedStorage, CosmosDbPartitionedConfig
 
+
 CONFIG = DefaultConfig()
 
 # Create adapter.
@@ -79,16 +80,24 @@ cosmos_config = CosmosDbPartitionedConfig(
     compatibility_mode=False,
 )
 
-USER_MEMORY = CosmosDbPartitionedStorage(cosmos_config)
+workflow_cosmos_config = CosmosDbPartitionedConfig(
+    cosmos_db_endpoint=CONFIG.COSMOS_DB_URI,
+    auth_key=CONFIG.COSMOS_DB_PRIMARY_KEY,
+    database_id=CONFIG.COSMOS_DB_DATABASE_ID,
+    container_id=CONFIG.COSMOS_DB_CONVERSATION_CONTAINER_ID,
+    compatibility_mode=False,
+)
 
+AZURE_MEMORY = CosmosDbPartitionedStorage(workflow_cosmos_config)
+# AZURE_USER_STATE = UserState(AZURE_MEMORY)
 
+# in-memory conversation data
 MEMORY = MemoryStorage()
 USER_STATE = UserState(MEMORY)
 CONVERSATION_STATE = ConversationState(MEMORY)
 
 # create main dialog and bot
-# DIALOG = MainDialog(USER_STATE, CONVERSATION_STATE)
-BOT = DialogBot(CONVERSATION_STATE, USER_STATE)
+BOT = DialogBot(CONVERSATION_STATE, USER_STATE, AZURE_MEMORY)
 
 
 # Listen for incoming requests on /api/messages.

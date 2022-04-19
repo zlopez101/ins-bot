@@ -25,16 +25,8 @@ import api
 class Procedure_Verification_Dialog(BaseDialog):
     """Implements the Procedure Verification Workflow"""
 
-    def __init__(
-        self,
-        user_state_accessor: StatePropertyAccessor,
-        conversation_state_accesor: StatePropertyAccessor,
-    ):
-        super().__init__(
-            Procedure_Verification_Dialog.__name__,
-            user_state_accessor,
-            conversation_state_accesor,
-        )
+    def __init__(self, user_profile_accessor: StatePropertyAccessor):
+        super().__init__(Procedure_Verification_Dialog.__name__, user_profile_accessor)
 
         self.add_dialog(
             WaterfallDialog(
@@ -52,9 +44,7 @@ class Procedure_Verification_Dialog(BaseDialog):
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
         self.add_dialog(ConfirmPrompt(ConfirmPrompt.__name__))
 
-        self.add_dialog(
-            Coverage_Selection(user_state_accessor, conversation_state_accesor)
-        )
+        self.add_dialog(Coverage_Selection(user_profile_accessor))
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Check if a vaccine is covered in the office"
 

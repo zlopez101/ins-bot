@@ -1,7 +1,7 @@
 """This module provides the base methods for interacting the Airtable API"""
 
 from typing import Dict, Tuple
-from aiohttp import ClientSession, ClientResponse
+from aiohttp import ClientProxyConnectionError, ClientSession, ClientResponse
 
 
 async def _raise_for_status(
@@ -57,7 +57,7 @@ async def _patch_record(
         updates (Dict[str, str]): updates with keys as field names, values as new values
     """
     data = dict(records=[dict(id=id, fields=updates)])
-    async with session.patch(url, data=data) as resp:
+    async with session.patch(url, json=data) as resp:
         return await resp.json()
 
 
