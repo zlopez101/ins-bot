@@ -26,12 +26,12 @@ from models.dialog import write_conversation_to_storage
 
 
 class Workflow:
-    def __init__(self, id: int, description: str, dialog_id: str, returns: object):
+    def __init__(self, id: int, description: str, dialog_id: str, help_url: str):
 
         self.id = id
         self.description = description
         self.dialog_id = dialog_id
-        self.returns = returns
+        self.help_url = help_url
 
     def __repr__(self):
         return f"Dialog({self.dialog_id}"
@@ -49,11 +49,11 @@ class MainDialog(BaseDialog):
     def __init__(
         self,
         user_profile_accessor: StatePropertyAccessor,
-        storage: CosmosDbPartitionedStorage,
+        conversationData: CosmosDbPartitionedStorage,
     ):
 
         super().__init__(MainDialog.__name__, user_profile_accessor)
-        self.storage = storage
+        self.conversationData = conversationData
         self.add_dialog(
             WaterfallDialog(
                 "main_loop",
@@ -62,8 +62,7 @@ class MainDialog(BaseDialog):
         )
         self.add_dialog(
             WaterfallDialog(
-                "signInWaterfall",
-                [self.ask_sign_in, self.confirm_sign_in, self.pass_to_workflow],
+                "signInWaterfall", [self.ask_sign_in, self.pass_to_workflow],
             )
         )
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
@@ -78,6 +77,7 @@ class MainDialog(BaseDialog):
             ]
         )
         self.initial_dialog_id = "signInWaterfall"
+        self.base_url = "https://insurance-verification.notion.site/Insurance-Verification-Bot-5eea7f3dfaed41929f664fe63b265eb1"
 
     def add_workflows(self, dialogs: List[ComponentDialog]):
         """This method is called in __init__() and adds the dialogs to the main dialog
@@ -87,7 +87,7 @@ class MainDialog(BaseDialog):
         ]
         [self.add_dialog(dialog) for dialog in instantiated_dialogs]
         self.workflows = [
-            Workflow(i, dialog.description, dialog.id, dialog.returns)
+            Workflow(i, dialog.description, dialog.id, dialog.help_url)
             for i, dialog in enumerate(instantiated_dialogs)
         ]
 
@@ -102,29 +102,15 @@ class MainDialog(BaseDialog):
         )
         if not (self.user_state.first and self.user_state.last):
             await step_context.context.send_activity(
-                MessageFactory.text("Welcome to the Insurance Verification bot!")
+                MessageFactory.text(
+                    f"Welcome to the [Insurance Verification bot]({self.base_url}). Click the link to learn more about me!"
+                )
             )
             await step_context.context.send_activity(
                 MessageFactory.text(
                     "I can assist with several insurance verification tasks. Before getting started, I'll need some quick information about you to help me answer your inquiries."
                 )
             )
-            return await step_context.prompt(
-                ConfirmPrompt.__name__,
-                options=PromptOptions(
-                    prompt=MessageFactory.text(
-                        "Do you want to sign in? Could be helpful..."
-                    )
-                ),
-            )
-
-        else:
-            return await step_context.begin_dialog("main_loop")
-
-    async def confirm_sign_in(
-        self, step_context: WaterfallStepContext
-    ) -> DialogTurnResult:
-        if step_context.result:
             return await step_context.begin_dialog(self.workflows[-1].dialog_id)
         else:
             return await step_context.begin_dialog("main_loop")
@@ -138,21 +124,16 @@ class MainDialog(BaseDialog):
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
         # user does want to sign in
-        if step_context.result:
-            return await step_context.begin_dialog(self.workflows[-1].dialog_id)
-        else:
-            return await step_context.prompt(
-                ChoicePrompt.__name__,
-                PromptOptions(
-                    prompt=MessageFactory.text(
-                        f"""Hey {self.user_state.first if self.user_state.first else ''}! I can assist with several workflows and I am adding new features all the time. Please select a workflow to get started!"""
-                    ),
-                    choices=[
-                        Choice(workflow.description) for workflow in self.workflows
-                    ],
-                    style=ListStyle.hero_card,
+        return await step_context.prompt(
+            ChoicePrompt.__name__,
+            PromptOptions(
+                prompt=MessageFactory.text(
+                    f"""Hey {self.user_state.first if self.user_state.first else ''}! I can assist with several workflows and I am adding new features all the time. Please select a workflow to get started!"""
                 ),
-            )
+                choices=[Choice(workflow.description) for workflow in self.workflows],
+                style=ListStyle.hero_card,
+            ),
+        )
 
     async def begin_desired_dialog(
         self, step_context: WaterfallStepContext
@@ -160,10 +141,18 @@ class MainDialog(BaseDialog):
         if not step_context.result:  # user set up, reprompt for main dialog
             return await step_context.begin_dialog("MainDialog")
         else:  # save the workflow chosen to save the state\
+
             step_context.values["workflow"] = [
                 wq for wq in self.workflows if wq == step_context.result.index
             ][0]
-
+            self.help_url = [
+                wq for wq in self.workflows if wq == step_context.result.index
+            ][0].help_url
+            await step_context.context.send_activity(
+                MessageFactory.text(
+                    'Quick Tip: you can cancel any workflow by sending the message "`cancel`" and get help on workflows by sending "`help`"'
+                )
+            )
             return await step_context.begin_dialog(
                 self.workflows[step_context.result.index].dialog_id
             )
@@ -173,7 +162,7 @@ class MainDialog(BaseDialog):
     ) -> DialogTurnResult:
         if step_context.result:
             reference_num = await write_conversation_to_storage(
-                step_context.result, self.storage
+                step_context.result, self.conversationData
             )
             print(reference_num)
             await step_context.context.send_activity(

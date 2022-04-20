@@ -36,6 +36,7 @@ class Provider_Selection(BaseDialog):
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         self.initial_dialog_id = WaterfallDialog.__name__
+        self.help_url = "https://insurance-verification.notion.site/Provider-Selection-f6367f9df53a44dea0375f38df5402a1"
 
     async def location_selection(
         self, step_context: WaterfallStepContext

@@ -88,16 +88,17 @@ workflow_cosmos_config = CosmosDbPartitionedConfig(
     compatibility_mode=False,
 )
 
-AZURE_MEMORY = CosmosDbPartitionedStorage(workflow_cosmos_config)
-# AZURE_USER_STATE = UserState(AZURE_MEMORY)
+AZURE_CONVERSATION_MEMORY = CosmosDbPartitionedStorage(workflow_cosmos_config)
+AZURE_USER_MEMORY = CosmosDbPartitionedStorage(cosmos_config)
+# AZURE_USER_STATE = UserState(AZURE_CONVERSATION_MEMORY)
 
 # in-memory conversation data
 MEMORY = MemoryStorage()
-USER_STATE = UserState(MEMORY)
+USER_STATE = UserState(AZURE_USER_MEMORY)
 CONVERSATION_STATE = ConversationState(MEMORY)
 
 # create main dialog and bot
-BOT = DialogBot(CONVERSATION_STATE, USER_STATE, AZURE_MEMORY)
+BOT = DialogBot(CONVERSATION_STATE, USER_STATE, AZURE_CONVERSATION_MEMORY)
 
 
 # Listen for incoming requests on /api/messages.

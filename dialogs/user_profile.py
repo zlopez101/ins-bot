@@ -45,7 +45,7 @@ class User_Profile_Dialog(BaseDialog):
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Set up user profile"
-        self.returns = UserProfile
+        self.help_url = "https://insurance-verification.notion.site/User-Profile-25a207315ee846089c9aca424d7758f2"
 
     async def preferred_name_step(
         self, step_context: WaterfallStepContext

@@ -47,6 +47,7 @@ class Procedure_Verification_Dialog(BaseDialog):
         self.add_dialog(Coverage_Selection(user_profile_accessor))
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Check if a vaccine is covered in the office"
+        self.help_url = "https://insurance-verification.notion.site/Is-the-procedure-covered-by-insurance-0e8141473bd44ce7ba27432f09766628"
 
     async def call_coverage_selection(
         self, step_context: WaterfallStepContext

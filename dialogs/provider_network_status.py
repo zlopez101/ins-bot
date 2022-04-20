@@ -27,7 +27,7 @@ class Provider_Network_Status(BaseDialog):
         self.add_dialog(Provider_Selection(user_profile_accessor))
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Is my provider in-network with patient's insurance?"
-        self.returns = None
+        self.help_url = "https://insurance-verification.notion.site/Is-my-provider-in-network-f2e784a743464a14a03959e7f60561d8"
 
     async def get_coverage(
         self, step_context: WaterfallStepContext

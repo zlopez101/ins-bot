@@ -80,7 +80,7 @@ async def write_conversation_to_storage(
         int: hash of workflow, time, and user name
     """
     initials = conversation.first[0] + conversation.last[0]
-
+    
     storage_id = "@".join([initials, conversation.time.strftime("%y%j%H%M"),])
     await storage.write({storage_id: conversation.to_dict()})
     return storage_id

@@ -25,10 +25,6 @@ class Coverage_Selection(BaseDialog):
 
     def __init__(self, user_profile_accessor: StatePropertyAccessor):
         super().__init__(Coverage_Selection.__name__, user_profile_accessor)
-
-        self.add_dialog(
-            WaterfallDialog("OuterDialog", [self.payer_name_step, self.begin_inner],)
-        )
         self.add_dialog(
             WaterfallDialog(
                 "CoverageSelectionSteps",
@@ -43,28 +39,8 @@ class Coverage_Selection(BaseDialog):
         )
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
         self.add_dialog(TextPrompt(TextPrompt.__name__))
+        self.help_url = "https://insurance-verification.notion.site/Coverage-Selection-708fb26df0704f919dee6a53113b74bf"
         self.initial_dialog_id = "PayerSelectionSteps"
-
-    async def payer_name_step(
-        self, step_context: WaterfallStepContext
-    ) -> DialogTurnResult:
-        """Have the user select a payer from a list"""
-        await self.state_set_up(step_context)
-        async with self.session as session:
-            self.payers = await api.coverages.get_payers(session)
-
-        return await step_context.prompt(
-            ChoicePrompt.__name__,
-            PromptOptions(
-                prompt=MessageFactory.text(
-                    "Select a Payer. Click `Next` to show the next 5."
-                ),
-                choices=[
-                    Choice(payer) for payer in [*sorted(self.payers), "None of these"]
-                ],
-                style=ListStyle.hero_card,
-            ),
-        )
 
     async def begin_payer_selection(
         self, step_context: WaterfallStepContext
@@ -77,7 +53,7 @@ class Coverage_Selection(BaseDialog):
                     await api.coverages.get_payers(session)
                 )
                 step_context.values["beg"] = 0
-                step_context.values["end"] = 5
+                step_context.values["end"] = 4
 
         payers = step_context.values["payers"][
             step_context.values["beg"] : step_context.values["end"]
@@ -88,7 +64,7 @@ class Coverage_Selection(BaseDialog):
                 "that's all the payers, go through the list again"
             )
             step_context.values["beg"] = 0
-            step_context.values["end"] = 5
+            step_context.values["end"] = 4
             payers = sorted(
                 step_context.values["payers"][
                     step_context.values["beg"] : step_context.values["end"]
@@ -101,7 +77,7 @@ class Coverage_Selection(BaseDialog):
                 prompt=MessageFactory.text(
                     "Select a Payer. If you don't the correct payer, select `next`"
                 ),
-                choices=[Choice(payer) for payer in [*payers, "Show the next 5"]],
+                choices=[Choice(payer) for payer in [*payers, "Show the next 4"]],
                 style=ListStyle.hero_card,
             ),
         )
@@ -111,8 +87,8 @@ class Coverage_Selection(BaseDialog):
     ) -> DialogTurnResult:
         if step_context.result.value.startswith("Show the next"):
             # await step_context.context.send_activity(MessageFactory.text("Here are the next 5 payers"))
-            step_context.values["end"] += 5
-            step_context.values["beg"] += 5
+            step_context.values["end"] += 4
+            step_context.values["beg"] += 4
             return await step_context.replace_dialog(
                 "PayerSelectionSteps", dict(**step_context.values)
             )
@@ -137,6 +113,7 @@ class Coverage_Selection(BaseDialog):
                 session,
                 step_context.values["payer"],
                 offset=step_context.values.get("offset"),
+                pageSize=4,
             )
         step_context.values["offset"] = offset
         # b/c sorted will fail if there if coverages was not an iterable
@@ -149,7 +126,7 @@ class Coverage_Selection(BaseDialog):
             ChoicePrompt.__name__,
             PromptOptions(
                 prompt=MessageFactory.text(
-                    f"Select the correct coverage associated with payer {step_context.values['payer']}. Select `next` to see the next 5 coverages."
+                    f"Select the correct coverage associated with payer {step_context.values['payer']}. Select `next` to see the next 4 coverages."
                 ),
                 choices=[
                     Choice(coverage.insurance_name)
@@ -172,7 +149,7 @@ class Coverage_Selection(BaseDialog):
         """Save the coverage before ending the dialog"""
         if step_context.result.value.startswith("Next"):
             await step_context.context.send_activity(
-                MessageFactory.text("Show the next 5 coverages")
+                MessageFactory.text("Show the next 4 coverages")
             )
             return await step_context.replace_dialog(
                 "CoverageSelectionSteps", dict(**step_context.values)

@@ -24,7 +24,7 @@ class Referral_Required_Dialog(BaseDialog):
         self.add_dialog(Coverage_Selection(self.user_profile_accessor))
         self.initial_dialog_id = WaterfallDialog.__name__
         self.description = "Check if insurance requires a referral."
-        self.returns = Insurance
+        self.help_url = "https://insurance-verification.notion.site/Are-referrals-required-88bd0dcea65a4b998a1d71b8fd03ae6c"
 
     async def get_coverage(
         self, step_context: WaterfallStepContext

@@ -30,6 +30,7 @@ class BaseDialog(ComponentDialog):
         self.name = name
         self.session = api.utils.Session()
         self.user_profile_accessor = user_profile_accessor
+        self.help_url = ""
 
     async def state_set_up(self, step_context: WaterfallStepContext):
 
@@ -46,8 +47,10 @@ class BaseDialog(ComponentDialog):
     async def interrupt(self, inner_dc: DialogContext) -> DialogTurnResult:
         if inner_dc.context.activity.type == ActivityTypes.message:
             text = inner_dc.context.activity.text.lower()
-
-            help_message_text = "Show Help..."
+            if self.help_url:
+                help_message_text = f"[Click Here]({self.help_url}) for the help sheet. It can explain how complete this workflow. Thank you!"
+            else:
+                help_message_text = f"A tip sheet hasn't been created for this workflow. Please send an email to CIT (attn: Zach) to request one. Thank you!"
             help_message = MessageFactory.text(
                 help_message_text, help_message_text, InputHints.expecting_input
             )
