@@ -52,10 +52,10 @@ class BaseDialog(ComponentDialog):
             else:
                 help_message_text = f"A tip sheet hasn't been created for this workflow. Please send an email to CIT (attn: Zach) to request one. Thank you!"
 
-            text = " Send me any message to continue the dialog."
+            append = " Send me any message to continue the dialog."
             help_message = MessageFactory.text(
-                help_message_text + text,
-                help_message_text + text,
+                help_message_text + append,
+                help_message_text + append,
                 InputHints.expecting_input,
             )
 
