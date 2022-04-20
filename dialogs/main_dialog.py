@@ -164,7 +164,6 @@ class MainDialog(BaseDialog):
             reference_num = await write_conversation_to_storage(
                 step_context.result, self.conversationData
             )
-            print(reference_num)
             await step_context.context.send_activity(
                 MessageFactory.text(
                     f"The reference number for this inquiry is: {reference_num}"

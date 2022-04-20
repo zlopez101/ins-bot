@@ -51,15 +51,21 @@ class BaseDialog(ComponentDialog):
                 help_message_text = f"[Click Here]({self.help_url}) for the help sheet. It can explain how complete this workflow. Thank you!"
             else:
                 help_message_text = f"A tip sheet hasn't been created for this workflow. Please send an email to CIT (attn: Zach) to request one. Thank you!"
+
+            text = " Send me any message to continue the dialog."
             help_message = MessageFactory.text(
-                help_message_text, help_message_text, InputHints.expecting_input
+                help_message_text + text,
+                help_message_text + text,
+                InputHints.expecting_input,
             )
 
             if text in ("help", "?"):
                 await inner_dc.context.send_activity(help_message)
                 return DialogTurnResult(DialogTurnStatus.Waiting)
 
-            cancel_message_text = "Cancelling"
+            cancel_message_text = (
+                f"Cancelling. Send me any message to start at beginning!"
+            )
             cancel_message = MessageFactory.text(
                 cancel_message_text, cancel_message_text, InputHints.ignoring_input
             )
@@ -69,9 +75,4 @@ class BaseDialog(ComponentDialog):
                 return await inner_dc.cancel_all_dialogs()
 
         return None
-
-    async def on_end_dialog(  # pylint: disable=unused-argument
-        self, context: TurnContext, instance: DialogInstance, reason: DialogReason
-    ) -> None:
-        print(f"{self.name} dialog ended")
 
