@@ -18,7 +18,8 @@ from botbuilder.core import (
 )
 from botbuilder.core.integration import aiohttp_error_middleware
 from botbuilder.schema import Activity, ActivityTypes, ConversationReference
-from typing import Dict
+
+# from typing import Dict
 
 
 from config import DefaultConfig
@@ -26,10 +27,10 @@ from bots import DialogBot
 
 from azure_db.initializations import AZURE_USER_MEMORY
 
-# from azure_db.clinic_bucket import read_users_in_bucket
+from azure_db.clinic_bucket import read_users_in_bucket
 
 CONFIG = DefaultConfig()
-CONVERSATION_REFERENCES: Dict[str, ConversationReference] = dict()
+# CONVERSATION_REFERENCES: Dict[str, ConversationReference] = dict()
 # Create adapter.
 # See https://aka.ms/about-bot-adapter to learn more about how bots work.
 SETTINGS = BotFrameworkAdapterSettings(CONFIG.APP_ID, CONFIG.APP_PASSWORD)
@@ -84,7 +85,7 @@ CONVERSATION_STATE = ConversationState(MEMORY)
 USER_STATE = UserState(AZURE_USER_MEMORY)
 
 # create main dialog and bot
-BOT = DialogBot(CONVERSATION_STATE, USER_STATE, CONVERSATION_REFERENCES)
+BOT = DialogBot(CONVERSATION_STATE, USER_STATE)
 
 # Listen for incoming requests on /api/messages.
 async def messages(req: Request) -> Response:
@@ -106,31 +107,27 @@ async def home_handler(req: Request) -> Response:
     return Response(body="Hello World! Logging configured")
 
 
-async def notify(req: Request) -> Response:  # pylint: disable=unused-argument
-    await send_messages(location="UT Physicians Multispecialty - Victory")
-    return Response(status=HTTPStatus.OK, text="Proactive messages sent!")
+APP = web.Application(middlewares=[aiohttp_error_middleware])
+
+routes = web.RouteTableDef()
 
 
-async def say_hello(context: TurnContext):
-    print("got here")
-    return await context.send_activity("proactive hello")
-
-
-async def send_messages(location: str = "Centralized Insurance Team"):
-    print(CONVERSATION_REFERENCES)
-    for conversation_reference in CONVERSATION_REFERENCES.values():
-        print(conversation_reference.user.id)
+@routes.get("/notify/{location}")
+async def notify(location: str):
+    users = await read_users_in_bucket(location)
+    for reference in users.values():
         await ADAPTER.continue_conversation(
-            conversation_reference,
+            reference,
             lambda turn_context: turn_context.send_activity("proactive hello"),
             CONFIG.APP_ID,
         )
+    return Response(status=HTTPStatus.OK, text="Proactive messages sent!")
 
 
-APP = web.Application(middlewares=[aiohttp_error_middleware])
+APP.add_routes(routes)
+
 APP.router.add_post("/api/messages", messages)
 APP.router.add_get("/", home_handler)
-APP.router.add_get("/notify", notify)
 
 
 def make_app():
