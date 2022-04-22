@@ -114,7 +114,7 @@ routes = web.RouteTableDef()
 
 @routes.get("/notify/{location}")
 async def notify(location: str):
-    users = await read_users_in_bucket(location)
+    users = await read_users_in_bucket(int(location))
     for reference in users.values():
         await ADAPTER.continue_conversation(
             reference,

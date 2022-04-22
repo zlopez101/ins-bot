@@ -1,7 +1,23 @@
 from typing import List
 from botbuilder.schema import ConversationReference
 from .initializations import CLINIC_BUCKET_STORAGE
-import os
+
+
+LOCATION_BUCKET_MAP = [
+    "Centralized Insurance Team",
+    "UT Physicians Family Practice - Bayshore",
+    "UT Physicians Family Practice - Bellaire",
+    "UT Physicians Multispecialty - Bayshore",
+    "UT Physicians Multispecialty - Bellaire",
+    "UT Physicians Multispecialty - Cinco Ranch",
+    "UT Physicians Multispecialty - Greens",
+    "UT Physicians Multispecialty - International District",
+    "UT Physicians Multispecialty - Jensen",
+    "UT Physicians Multispecialty - Rosenberg",
+    "UT Physicians Multispecialty - Sienna",
+    "UT Physicians Multispecialty - The Heights",
+    "UT Physicians Multispecialty - Victory",
+]
 
 
 async def write_user_to_clinic_bucket(
@@ -33,6 +49,6 @@ async def write_user_to_clinic_bucket(
     await CLINIC_BUCKET_STORAGE.write(dict(buckets=buckets))
 
 
-async def read_users_in_bucket(bucket: str) -> dict:
+async def read_users_in_bucket(index_of_bucket: int) -> dict:
     buckets = await CLINIC_BUCKET_STORAGE.read(["buckets"])
-    return buckets.get("buckets").get(bucket)
+    return buckets.get("buckets").get(LOCATION_BUCKET_MAP[index_of_bucket])
