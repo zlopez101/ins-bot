@@ -12,6 +12,8 @@ if not os.environ.get("production"):
 else:
     PORT = 8000
 
+print("")
+
 
 class DefaultConfig:
     """ Bot Configuration """
@@ -23,4 +25,10 @@ class DefaultConfig:
     COSMOS_DB_PRIMARY_KEY = os.environ.get("COSMOS_DB_PRIMARY_KEY")
     COSMOS_DB_DATABASE_ID = os.environ.get("COSMOS_DB_DATABASE_ID")
     COSMOS_DB_CONTAINER_ID = os.environ.get("COSMOS_DB_CONTAINER_ID")
-    COSMOS_DB_CONVERSATION_CONTAINER_ID = os.environ.get("COSMOS_DB_CONVERSATION_CONTAINER_ID")
+    COSMOS_DB_CONVERSATION_CONTAINER_ID = os.environ.get(
+        "COSMOS_DB_CONVERSATION_CONTAINER_ID"
+    )
+    COSMOS_DB_CLINIC_BUCKETS_CONTAINER_ID = os.environ.get(
+        "COSMOS_DB_CLINIC_BUCKETS_CONTAINER_ID"
+    )
+

@@ -4,6 +4,7 @@ from botbuilder.dialogs import (
     WaterfallDialog,
     WaterfallStepContext,
     DialogTurnResult,
+    DialogContext,
 )
 from botbuilder.dialogs.prompts import (
     ChoicePrompt,
@@ -13,16 +14,17 @@ from botbuilder.dialogs.prompts import (
 )
 from botbuilder.dialogs.choices import Choice
 from botbuilder.core import MessageFactory, StatePropertyAccessor
+from dialogs.base_dialog import BaseDialog
 
 from dialogs.vaccine_verification import Vaccine_Verification_Dialog
 from dialogs.referral_required import Referral_Required_Dialog
 from dialogs.user_profile import User_Profile_Dialog
-from dialogs.base_dialog import BaseDialog
 from dialogs.provider_network_status import Provider_Network_Status
 from botbuilder.dialogs.choices.list_style import ListStyle
-from botbuilder.azure import CosmosDbPartitionedStorage
 from models import bot
-from models.dialog import write_conversation_to_storage
+
+# from models.dialog import write_conversation_to_storage
+from azure_db.conversation_data import write_conversation_to_storage
 
 
 class Workflow:
@@ -47,13 +49,10 @@ class MainDialog(BaseDialog):
     """The Main Dialog"""
 
     def __init__(
-        self,
-        user_profile_accessor: StatePropertyAccessor,
-        conversationData: CosmosDbPartitionedStorage,
+        self, user_profile_accessor: StatePropertyAccessor,
     ):
 
         super().__init__(MainDialog.__name__, user_profile_accessor)
-        self.conversationData = conversationData
         self.add_dialog(
             WaterfallDialog(
                 "main_loop",
@@ -123,6 +122,7 @@ class MainDialog(BaseDialog):
     async def choose_workflow(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
+        """"""
         # user does want to sign in
         return await step_context.prompt(
             ChoicePrompt.__name__,
@@ -161,9 +161,7 @@ class MainDialog(BaseDialog):
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
         if step_context.result:
-            reference_num = await write_conversation_to_storage(
-                step_context.result, self.conversationData
-            )
+            reference_num = await write_conversation_to_storage(step_context.result)
             await step_context.context.send_activity(
                 MessageFactory.text(
                     f"The reference number for this inquiry is: {reference_num}"

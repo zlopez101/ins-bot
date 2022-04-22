@@ -17,17 +17,19 @@ from botbuilder.core import (
     UserState,
 )
 from botbuilder.core.integration import aiohttp_error_middleware
-from botbuilder.schema import Activity, ActivityTypes
+from botbuilder.schema import Activity, ActivityTypes, ConversationReference
+from typing import Dict
+
 
 from config import DefaultConfig
 from bots import DialogBot
 
+from azure_db.initializations import AZURE_USER_MEMORY
 
-from botbuilder.azure import CosmosDbPartitionedStorage, CosmosDbPartitionedConfig
-
+# from azure_db.clinic_bucket import read_users_in_bucket
 
 CONFIG = DefaultConfig()
-
+CONVERSATION_REFERENCES: Dict[str, ConversationReference] = dict()
 # Create adapter.
 # See https://aka.ms/about-bot-adapter to learn more about how bots work.
 SETTINGS = BotFrameworkAdapterSettings(CONFIG.APP_ID, CONFIG.APP_PASSWORD)
@@ -45,6 +47,9 @@ async def on_error(context: TurnContext, error: Exception):
     # Send a message to the user
     await context.send_activity(
         "Yikes! There's been an error with my processing. I'm still learning so how to do this insurance verification stuff!"
+    )
+    await context.send_activity(
+        "If you have the time, please fill out a [bug report](https://insurance-verification.notion.site/Bug-Reports-801d7a667d8542e79a2e077a0c30f8f2). This helps me get better."
     )
     await context.send_activity("To start over, send me a new message.")
     # Send a trace activity if we're talking to the Bot Framework Emulator
@@ -71,35 +76,15 @@ async def on_error(context: TurnContext, error: Exception):
 ADAPTER.on_turn_error = on_error
 
 
-# Create MemoryStorage, UserState and ConversationState
-cosmos_config = CosmosDbPartitionedConfig(
-    cosmos_db_endpoint=CONFIG.COSMOS_DB_URI,
-    auth_key=CONFIG.COSMOS_DB_PRIMARY_KEY,
-    database_id=CONFIG.COSMOS_DB_DATABASE_ID,
-    container_id=CONFIG.COSMOS_DB_CONTAINER_ID,
-    compatibility_mode=False,
-)
-
-workflow_cosmos_config = CosmosDbPartitionedConfig(
-    cosmos_db_endpoint=CONFIG.COSMOS_DB_URI,
-    auth_key=CONFIG.COSMOS_DB_PRIMARY_KEY,
-    database_id=CONFIG.COSMOS_DB_DATABASE_ID,
-    container_id=CONFIG.COSMOS_DB_CONVERSATION_CONTAINER_ID,
-    compatibility_mode=False,
-)
-
-AZURE_CONVERSATION_MEMORY = CosmosDbPartitionedStorage(workflow_cosmos_config)
-AZURE_USER_MEMORY = CosmosDbPartitionedStorage(cosmos_config)
-# AZURE_USER_STATE = UserState(AZURE_CONVERSATION_MEMORY)
-
 # in-memory conversation data
 MEMORY = MemoryStorage()
-USER_STATE = UserState(AZURE_USER_MEMORY)
 CONVERSATION_STATE = ConversationState(MEMORY)
 
-# create main dialog and bot
-BOT = DialogBot(CONVERSATION_STATE, USER_STATE, AZURE_CONVERSATION_MEMORY)
+# Create user state based on import
+USER_STATE = UserState(AZURE_USER_MEMORY)
 
+# create main dialog and bot
+BOT = DialogBot(CONVERSATION_STATE, USER_STATE, CONVERSATION_REFERENCES)
 
 # Listen for incoming requests on /api/messages.
 async def messages(req: Request) -> Response:
@@ -121,9 +106,31 @@ async def home_handler(req: Request) -> Response:
     return Response(body="Hello World! Logging configured")
 
 
+async def notify(req: Request) -> Response:  # pylint: disable=unused-argument
+    await send_messages(location="UT Physicians Multispecialty - Victory")
+    return Response(status=HTTPStatus.OK, text="Proactive messages sent!")
+
+
+async def say_hello(context: TurnContext):
+    print("got here")
+    return await context.send_activity("proactive hello")
+
+
+async def send_messages(location: str = "Centralized Insurance Team"):
+    print(CONVERSATION_REFERENCES)
+    for conversation_reference in CONVERSATION_REFERENCES.values():
+        print(conversation_reference.user.id)
+        await ADAPTER.continue_conversation(
+            conversation_reference,
+            lambda turn_context: turn_context.send_activity("proactive hello"),
+            CONFIG.APP_ID,
+        )
+
+
 APP = web.Application(middlewares=[aiohttp_error_middleware])
 APP.router.add_post("/api/messages", messages)
 APP.router.add_get("/", home_handler)
+APP.router.add_get("/notify", notify)
 
 
 def make_app():

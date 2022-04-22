@@ -1,8 +1,4 @@
-from botbuilder.dialogs import (
-    WaterfallDialog,
-    WaterfallStepContext,
-    DialogTurnResult,
-)
+from botbuilder.dialogs import WaterfallDialog, WaterfallStepContext, DialogTurnResult
 from botbuilder.dialogs.prompts import (
     TextPrompt,
     ChoicePrompt,
@@ -11,12 +7,14 @@ from botbuilder.dialogs.prompts import (
 )
 
 from botbuilder.dialogs.choices import Choice
-from botbuilder.core import MessageFactory, StatePropertyAccessor
+from botbuilder.core import MessageFactory, StatePropertyAccessor, TurnContext
 from botbuilder.dialogs.choices.list_style import ListStyle
 from dialogs.base_dialog import BaseDialog
-
-from models.bot import ChoiceLooper, UserProfile
+from botbuilder.schema import Activity
+from models.bot import UserProfile
 import api
+
+from azure_db.clinic_bucket import write_user_to_clinic_bucket
 
 
 class User_Profile_Dialog(BaseDialog):
@@ -35,11 +33,6 @@ class User_Profile_Dialog(BaseDialog):
                 ],
             )
         )
-        self.add_dialog(
-            WaterfallDialog(
-                "LocationSelectionDialog", [self.choose_location, self.confirm_location]
-            )
-        )
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         self.add_dialog(ConfirmPrompt(ConfirmPrompt.__name__))
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
@@ -50,7 +43,6 @@ class User_Profile_Dialog(BaseDialog):
     async def preferred_name_step(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
-        await self.state_set_up(step_context)
         return await step_context.prompt(
             TextPrompt.__name__,
             options=PromptOptions(
@@ -64,44 +56,26 @@ class User_Profile_Dialog(BaseDialog):
         last, first = step_context.result.split(",")
         step_context.values["last"] = last.strip()
         step_context.values["first"] = first.strip()
-        return await step_context.begin_dialog(
-            "LocationSelectionDialog", step_context.values
-        )
-
-    async def choose_location(
-        self, step_context: WaterfallStepContext
-    ) -> DialogTurnResult:
-        if not step_context.options.get("choices"):
-            async with self.session as session:
-                locations = await api.providers.get_locations(session)
-                self.looping = ChoiceLooper(
-                    locations, lambda location: location.split("-")
-                )
-        step_context.values["choices"] = True
+        async with self.session as session:
+            locations = await api.providers.get_locations(session)
+            step_context.values["locations"] = [
+                "Centralized Insurance Team",
+                *locations,
+            ]
 
         return await step_context.prompt(
             ChoicePrompt.__name__,
             options=PromptOptions(
                 prompt=MessageFactory.text("Please Select a location"),
                 choices=[
-                    Choice(location) for location in [*next(self.looping), "See Next 5"]
+                    Choice(location) for location in step_context.values["locations"]
                 ],
                 style=ListStyle.hero_card,
             ),
         )
 
-    async def confirm_location(
-        self, step_context: WaterfallStepContext
-    ) -> DialogTurnResult:
-        if step_context.result.value.startswith("See"):
-            return await step_context.replace_dialog(
-                "LocationSelectionDialog", step_context.values
-            )
-        else:
-            return await step_context.end_dialog(step_context.result.value)
-
     async def role_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
-        step_context.values["location"] = step_context.result
+        step_context.values["location"] = step_context.result.value
         return await step_context.prompt(
             ChoicePrompt.__name__,
             options=PromptOptions(
@@ -133,6 +107,15 @@ class User_Profile_Dialog(BaseDialog):
 
     async def save_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         if step_context.result:
+            reference = TurnContext.get_conversation_reference(
+                step_context.context.activity
+            )
+            await write_user_to_clinic_bucket(
+                reference,
+                step_context.values["location"],
+                step_context.values.pop("locations"),
+                self.user_state.location,
+            )
             await self.user_profile_accessor.set(
                 step_context.context, UserProfile(**step_context.values)
             )
@@ -146,3 +129,13 @@ class User_Profile_Dialog(BaseDialog):
                 )
             )
         return await step_context.end_dialog()
+
+    def _add_conversation_reference(self, activity: Activity):
+        """
+        This populates the shared Dictionary that holds conversation references. In this sample,
+        this dictionary is used to send a message to members when /api/notify is hit.
+        :param activity:
+        :return:
+        """
+        conversation_reference = TurnContext.get_conversation_reference(activity)
+        return (conversation_reference.user.id, conversation_reference)

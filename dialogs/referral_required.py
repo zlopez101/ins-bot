@@ -31,7 +31,6 @@ class Referral_Required_Dialog(BaseDialog):
     ) -> DialogTurnResult:
         """Begin the coverage_selection dialog"""
 
-        await self.state_set_up(step_context)
         return await step_context.begin_dialog(Coverage_Selection.__name__)
 
     async def referral_required(

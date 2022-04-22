@@ -53,8 +53,6 @@ class Procedure_Verification_Dialog(BaseDialog):
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
         """Call the coverage selection dialog to have user select insurance"""
-
-        await self.state_set_up(step_context)
         return await step_context.begin_dialog(Coverage_Selection.__name__)
 
     async def cpt_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:

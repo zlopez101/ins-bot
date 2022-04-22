@@ -41,7 +41,6 @@ class Provider_Selection(BaseDialog):
     async def location_selection(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
-        await self.state_set_up(step_context)
         async with self.session as session:
             locations = await api.providers.get_locations(session)
         return await step_context.prompt(

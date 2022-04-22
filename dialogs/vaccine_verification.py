@@ -47,7 +47,6 @@ class Vaccine_Verification_Dialog(BaseDialog):
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
         """Call the coverage selection dialog to have user select insurance"""
-        await self.state_set_up(step_context)
         step_context.values["codes_checked"] = []
         if step_context.options:
             step_context.values.update(step_context.options)

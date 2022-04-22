@@ -33,8 +33,6 @@ class Provider_Network_Status(BaseDialog):
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
         """Begin the coverage_selection dialog"""
-
-        await self.state_set_up(step_context)
         return await step_context.begin_dialog(Coverage_Selection.__name__)
 
     async def get_provider(
@@ -51,6 +49,6 @@ class Provider_Network_Status(BaseDialog):
                 f"This is where we check the provider {step_context.result}'s status with the plan {step_context.values['coverage']}."
             )
         )
-        result = Provider_Network_Status.create(self.user_state, **step_context.values)
+        result = ProviderNetworkStatus.create(self.user_state, **step_context.values)
         return await step_context.end_dialog(result)
 
