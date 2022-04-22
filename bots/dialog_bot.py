@@ -24,7 +24,7 @@ class DialogBot(ActivityHandler):
         self,
         conversation_state: ConversationState,
         user_state: UserState,
-        conversation_reference: Dict[str, ConversationReference],
+        # conversation_reference: Dict[str, ConversationReference],
     ):
         if conversation_state is None:
             raise TypeError(
@@ -34,7 +34,7 @@ class DialogBot(ActivityHandler):
             raise TypeError(
                 "[DialogBot]: Missing parameter. user_state is required but None was given"
             )
-        self.conversation_reference = conversation_reference
+        # self.conversation_reference = conversation_reference
         self.conversation_state = conversation_state
         self.user_state = user_state
 
@@ -47,7 +47,7 @@ class DialogBot(ActivityHandler):
         await self.user_state.save_changes(turn_context)
 
     async def on_message_activity(self, turn_context: TurnContext):
-        self._add_conversation_reference(turn_context.activity)
+        # self._add_conversation_reference(turn_context.activity)
         await DialogHelper.run_dialog(
             self.dialog,
             turn_context,
@@ -58,17 +58,17 @@ class DialogBot(ActivityHandler):
         print("end of conversation")
         return await super().on_end_of_conversation_activity(turn_context)
 
-    def _add_conversation_reference(self, activity: Activity):
-        """
-        This populates the shared Dictionary that holds conversation references. In this sample,
-        this dictionary is used to send a message to members when /api/notify is hit.
-        :param activity:
-        :return:
-        """
-        conversation_reference = TurnContext.get_conversation_reference(activity)
-        self.conversation_reference[
-            conversation_reference.user.id
-        ] = conversation_reference
+    # def _add_conversation_reference(self, activity: Activity):
+    #     """
+    #     This populates the shared Dictionary that holds conversation references. In this sample,
+    #     this dictionary is used to send a message to members when /api/notify is hit.
+    #     :param activity:
+    #     :return:
+    #     """
+    #     conversation_reference = TurnContext.get_conversation_reference(activity)
+    #     self.conversation_reference[
+    #         conversation_reference.user.id
+    #     ] = conversation_reference
 
     async def on_members_added_activity(
         self, members_added: ChannelAccount, turn_context: TurnContext

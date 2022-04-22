@@ -129,13 +129,3 @@ class User_Profile_Dialog(BaseDialog):
                 )
             )
         return await step_context.end_dialog()
-
-    def _add_conversation_reference(self, activity: Activity):
-        """
-        This populates the shared Dictionary that holds conversation references. In this sample,
-        this dictionary is used to send a message to members when /api/notify is hit.
-        :param activity:
-        :return:
-        """
-        conversation_reference = TurnContext.get_conversation_reference(activity)
-        return (conversation_reference.user.id, conversation_reference)
