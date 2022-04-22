@@ -19,12 +19,10 @@ class Conversation_State:
 @dataclass
 class UserProfile:
 
-    user_id: str = None
     first: str = None
     last: str = None
     role: str = None
     location: str = None
-    conversation: ConversationReference = None
 
 
 class ChoiceLooper:

@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 from botbuilder.schema import ConversationReference
 from .initializations import CLINIC_BUCKET_STORAGE
 
@@ -38,17 +38,22 @@ async def write_user_to_clinic_bucket(
     if not buckets:
         # create the Dict[str, Dict]
         # value will be Dict[user_id: conversations]
-        buckets = {location: {} for location in locations}
+        inner_buckets = {location: {} for location in locations}
+        buckets = dict(buckets=inner_buckets)
+
     # write user to clinic storage
-    chosen = buckets.get(chosen_location, {})
+    temp = buckets.get("buckets")
+    chosen = temp.get(chosen_location)
     chosen[conversation.user.id] = conversation
     # erase user from previous storage if one
     if previous_location:
-        previous = buckets.get(previous_location)
-        previous.pop(conversation.user.id)
-    await CLINIC_BUCKET_STORAGE.write(dict(buckets=buckets))
+        previous = temp.get(previous_location)
+        previous.pop(conversation.user.id, "    ")
+    await CLINIC_BUCKET_STORAGE.write(buckets)
 
 
 async def read_users_in_bucket(index_of_bucket: int) -> dict:
     buckets = await CLINIC_BUCKET_STORAGE.read(["buckets"])
-    return buckets.get("buckets").get(LOCATION_BUCKET_MAP[index_of_bucket])
+    index = LOCATION_BUCKET_MAP[index_of_bucket]
+    buckets: Dict[str, Dict] = buckets.get("buckets")
+    return buckets.get(index)

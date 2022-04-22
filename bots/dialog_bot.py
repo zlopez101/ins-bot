@@ -55,7 +55,7 @@ class DialogBot(ActivityHandler):
         )
 
     async def on_end_of_conversation_activity(self, turn_context: TurnContext):
-        print("end of conversation")
+
         return await super().on_end_of_conversation_activity(turn_context)
 
     # def _add_conversation_reference(self, activity: Activity):

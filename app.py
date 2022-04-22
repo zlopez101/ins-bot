@@ -17,14 +17,12 @@ from botbuilder.core import (
     UserState,
 )
 from botbuilder.core.integration import aiohttp_error_middleware
-from botbuilder.schema import Activity, ActivityTypes, ConversationReference
-
-# from typing import Dict
+from botbuilder.schema import Activity, ActivityTypes
 
 
 from config import DefaultConfig
 from bots import DialogBot
-
+import os
 from azure_db.initializations import AZURE_USER_MEMORY
 
 from azure_db.clinic_bucket import read_users_in_bucket
@@ -104,21 +102,29 @@ async def messages(req: Request) -> Response:
 
 
 async def home_handler(req: Request) -> Response:
+    req.query
     return Response(body="Hello World! Logging configured")
 
 
-APP = web.Application(middlewares=[aiohttp_error_middleware])
+APP = web.Application()
 
 routes = web.RouteTableDef()
 
 
 @routes.get("/notify/{location}")
-async def notify(location: str):
-    users = await read_users_in_bucket(int(location))
-    for reference in users.values():
+async def notify(request: Request):
+    params = request.query
+    users = await read_users_in_bucket(int(request.match_info["location"]))
+    if not os.environ.get("production"):
+        users = [user for user in users.values()]
+    else:
+        users = [user for user in users.values() if user["channel_id"] != "emulator"]
+    for reference in users:
         await ADAPTER.continue_conversation(
             reference,
-            lambda turn_context: turn_context.send_activity("proactive hello"),
+            lambda turn_context: turn_context.send_activity(
+                f'{params["location"]}: {params["mrn"]}. {params["requestor"]} says: "{params["message"]}"'
+            ),
             CONFIG.APP_ID,
         )
     return Response(status=HTTPStatus.OK, text="Proactive messages sent!")
@@ -131,7 +137,7 @@ APP.router.add_get("/", home_handler)
 
 
 def make_app():
-    APP = web.Application(middlewares=[aiohttp_error_middleware])
+    APP = web.Application()
     APP.router.add_post("/api/messages", messages)
     APP.router.add_get("/", home_handler)
     return APP

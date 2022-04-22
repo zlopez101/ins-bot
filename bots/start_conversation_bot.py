@@ -1,12 +1,13 @@
 from botbuilder.core import ActivityHandler, ConversationState, TurnContext, UserState
 from botbuilder.schema import ChannelAccount, ConversationReference
+from dialogs.help_requested.startingConversation import Start
 from helpers.dialog_helper import DialogHelper
 from typing import Dict, List
 
 
-class AlertTeamOfStatusHelp(ActivityHandler):
-    def __init__(self, members: Dict[str, ConversationReference]):
-        self.members = members
+class ProactiveMessage(ActivityHandler):
+    def __init__(self):
+        self.dialog = Start()
 
     async def on_turn(self, turn_context: TurnContext):
         return await super().on_turn(turn_context)

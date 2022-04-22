@@ -37,3 +37,5 @@ if __name__ == "__main__":
     async def main():
         async with ClientSession(headers=HEADERS) as session:
             print(await get_locations(session))
+
+    asyncio.run(main())

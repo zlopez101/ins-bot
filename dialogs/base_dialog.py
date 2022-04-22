@@ -5,17 +5,24 @@
     * defines the state_set_up() method that uses the state accessors to get the state
 
 """
+from email.message import Message
 from botbuilder.dialogs import (
     ComponentDialog,
     WaterfallStepContext,
+    WaterfallDialog,
     DialogContext,
     DialogTurnResult,
     DialogTurnStatus,
+    NumberPrompt,
+    PromptOptions,
+    TextPrompt,
 )
 from botbuilder.core import StatePropertyAccessor, MessageFactory
 from botbuilder.schema import ActivityTypes, InputHints, Activity
+from click import option
 from models.bot import UserProfile
 import api
+from azure_db.clinic_bucket import LOCATION_BUCKET_MAP
 
 
 class BaseDialog(ComponentDialog):
@@ -28,6 +35,7 @@ class BaseDialog(ComponentDialog):
         self.session = api.utils.Session()
         self.user_profile_accessor = user_profile_accessor
         self.help_url = ""
+        self.add_dialog(GetInfo(user_profile_accessor))
 
     async def on_begin_dialog(
         self, inner_dc: DialogContext, options: object
@@ -81,8 +89,55 @@ class BaseDialog(ComponentDialog):
                 return await inner_dc.cancel_all_dialogs()
 
             # handoff to human block
-            handoff_message = "Getting someone from the CIT that can help!"
-            if text in ("human"):
-                await inner_dc.context.send_activity(handoff_message)
+
+            if text in ("agent"):
+                await inner_dc.context.send_activity("Help is right around the corner!")
+                await inner_dc.begin_dialog(GetInfo.__name__)
+
         return None
 
+
+class GetInfo(ComponentDialog):
+    def __init__(self, user_profile_accessor: StatePropertyAccessor):
+        super().__init__(GetInfo.__name__)
+        self.session = api.utils.Session()
+        self.user_profile_accessor = user_profile_accessor
+        self.add_dialog(WaterfallDialog("mrn", [self.get_mrn, self.message, self.end]))
+        self.add_dialog(NumberPrompt(NumberPrompt.__name__))
+        self.add_dialog(TextPrompt(TextPrompt.__name__))
+        self.initial_dialog_id = "mrn"
+
+    async def get_mrn(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        self.user_state: UserProfile = await self.user_profile_accessor.get(
+            step_context.context
+        )
+        return await step_context.prompt(
+            NumberPrompt.__name__,
+            options=PromptOptions(MessageFactory.text("Please attach the MRN")),
+        )
+
+    async def message(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        step_context.values["mrn"] = step_context.result
+        return await step_context.prompt(
+            TextPrompt.__name__,
+            options=PromptOptions(
+                MessageFactory.text(
+                    "Please send a short message to pass along to the team"
+                )
+            ),
+        )
+
+    async def end(self, step_context: WaterfallStepContext) -> DialogTurnResult:
+        handoff_message = "Getting someone from the CIT that can help!"
+        await step_context.context.send_activity(handoff_message)
+        async with self.session as session:
+            params = {
+                "requestor": f"{self.user_state.first} {self.user_state.last}",
+                "mrn": str(step_context.values["mrn"]),
+                "location": self.user_state.location,
+                "message": step_context.result,
+            }
+            await session.get(
+                f"http://localhost:3978/notify/0", params=params,
+            )
+        return await step_context.end_dialog()

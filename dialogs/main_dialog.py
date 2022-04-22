@@ -150,7 +150,11 @@ class MainDialog(BaseDialog):
             ][0].help_url
             await step_context.context.send_activity(
                 MessageFactory.text(
-                    'Quick Tip: you can cancel any workflow by sending the message "`cancel`" and get help on workflows by sending "`help`"'
+                    """Quick Tip: you can:
+                    * cancel any workflow by sending the message "`cancel`" 
+                    * see the reference documentation for the workflow with message "`help`"
+                    * or get a member of the CIT to help with "`agent`"
+                    """
                 )
             )
             return await step_context.begin_dialog(
