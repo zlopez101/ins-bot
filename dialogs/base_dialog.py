@@ -18,11 +18,9 @@ from botbuilder.dialogs import (
     TextPrompt,
 )
 from botbuilder.core import StatePropertyAccessor, MessageFactory
-from botbuilder.schema import ActivityTypes, InputHints, Activity
-from click import option
+from botbuilder.schema import ActivityTypes, InputHints
 from models.bot import UserProfile
 import api
-from azure_db.clinic_bucket import LOCATION_BUCKET_MAP
 
 
 class BaseDialog(ComponentDialog):
@@ -138,6 +136,6 @@ class GetInfo(ComponentDialog):
                 "message": step_context.result,
             }
             await session.get(
-                f"http://localhost:3978/notify/0", params=params,
+                f"https://ut-ins-bot-web-app.azurewebsites.net/notify/0", params=params,
             )
         return await step_context.end_dialog()
