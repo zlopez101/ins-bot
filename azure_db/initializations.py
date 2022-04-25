@@ -4,6 +4,7 @@ from config import DefaultConfig
 CONFIG = DefaultConfig()
 # Create MemoryStorage, UserState and ConversationState
 USER_CONFIG = CosmosDbPartitionedConfig(
+    container_throughput=0,
     cosmos_db_endpoint=CONFIG.COSMOS_DB_URI,
     auth_key=CONFIG.COSMOS_DB_PRIMARY_KEY,
     database_id=CONFIG.COSMOS_DB_DATABASE_ID,
@@ -13,6 +14,7 @@ USER_CONFIG = CosmosDbPartitionedConfig(
 AZURE_USER_MEMORY = CosmosDbPartitionedStorage(USER_CONFIG)
 
 CONVERSATION_DATA_CONFIG = CosmosDbPartitionedConfig(
+    container_throughput=0,
     cosmos_db_endpoint=CONFIG.COSMOS_DB_URI,
     auth_key=CONFIG.COSMOS_DB_PRIMARY_KEY,
     database_id=CONFIG.COSMOS_DB_DATABASE_ID,
@@ -22,6 +24,7 @@ CONVERSATION_DATA_CONFIG = CosmosDbPartitionedConfig(
 AZURE_CONVERSATION_MEMORY = CosmosDbPartitionedStorage(CONVERSATION_DATA_CONFIG)
 
 CLINIC_BUCKET_CONFIG = CosmosDbPartitionedConfig(
+    container_throughput=0,
     cosmos_db_endpoint=CONFIG.COSMOS_DB_URI,
     auth_key=CONFIG.COSMOS_DB_PRIMARY_KEY,
     database_id=CONFIG.COSMOS_DB_DATABASE_ID,

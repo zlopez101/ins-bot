@@ -1,14 +1,16 @@
 # Ins-bot
 
-This is a microsoft teams bot built for handling insurance verification workflows that are commonly requested from clinics. These tasks are often repetitive, and involve simple look ups that a bot (me!) should be able to do without human supervision. I take the end-user'a (typically a PAR, MA, or RN) provided info and perform simple lookups on an airtable API. The airtable would be maintained by the insurance verification team to be up-to-date. I am envisioning a monthly confirmation on all coverages.
+This is a microsoft teams bot built for handling insurance verification workflows that are commonly requested from clinics. These tasks are often repetitive, and involve simple lookups on previously gathered information that a bot should be able to reference without human supervision. Give me a try [here]()!
 
-## How Do I work?
+## How does the bot work?
 
-I am running in an Azure Python Web App! The app has /api/messages endpoint that the bot posts to. From there, the DialogBot(ActivityHandler) class manages a dialog workflow that answers end-user questions.
+The bot is running in an Azure Python Web App. The app has /api/messages endpoint that the bot posts to. From there, the DialogBot(ActivityHandler) class manages a dialog workflow that from a MainDialog Class. The class holds references to the implemented workflows that access the same user state and help/cancel/agent methods through a BaseDialog class. The I take the end-user'a (typically a PAR, MA, or RN) provided info and perform simple lookups on an airtable API.
 
 ## Who are my customers?
 
-End-users would be PAR, MA, RN, or other clinic staff handling insurance-related tasks
+End-users would be PAR, MA, RN, or other clinic staff handling insurance-related tasks.
+
+##
 
 ## Deploy the bot to Azure if your name is Zach
 
