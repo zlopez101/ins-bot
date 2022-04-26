@@ -31,4 +31,5 @@ class DefaultConfig:
     COSMOS_DB_CLINIC_BUCKETS_CONTAINER_ID = os.environ.get(
         "COSMOS_DB_CLINIC_BUCKETS_CONTAINER_ID"
     )
+    SITE_URL = os.environ.get("SITE_URL")
 

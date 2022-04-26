@@ -18,9 +18,13 @@ from botbuilder.dialogs import (
     TextPrompt,
 )
 from botbuilder.core import StatePropertyAccessor, MessageFactory
-from botbuilder.schema import ActivityTypes, InputHints
+from botbuilder.schema import ActivityTypes, InputHints, Activity, Transcript
 from models.bot import UserProfile
 import api
+from config import DefaultConfig
+from azure_db.clinic_bucket import read_users_in_bucket
+
+CONFIG = DefaultConfig()
 
 
 class BaseDialog(ComponentDialog):
@@ -111,7 +115,7 @@ class GetInfo(ComponentDialog):
         )
         return await step_context.prompt(
             NumberPrompt.__name__,
-            options=PromptOptions(MessageFactory.text("Please attach the MRN")),
+            options=PromptOptions(MessageFactory.text("Please attach the fake MRN")),
         )
 
     async def message(self, step_context: WaterfallStepContext) -> DialogTurnResult:
@@ -128,6 +132,11 @@ class GetInfo(ComponentDialog):
     async def end(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         handoff_message = "Getting someone from the CIT that can help!"
         await step_context.context.send_activity(handoff_message)
+        # handoff = Activity.create_handoff_activity()
+        # users = await read_users_in_bucket(0)
+        # for _, conversation in
+        # handoff.conversation =
+        # await step_context.context.send_activity()
         async with self.session as session:
             params = {
                 "requestor": f"{self.user_state.first} {self.user_state.last}",
@@ -136,6 +145,6 @@ class GetInfo(ComponentDialog):
                 "message": step_context.result,
             }
             await session.get(
-                f"https://ut-ins-bot-web-app.azurewebsites.net/notify/0", params=params,
+                CONFIG.SITE_URL + "/notify/0", params=params,
             )
         return await step_context.end_dialog()

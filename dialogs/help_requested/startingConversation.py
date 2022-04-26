@@ -4,11 +4,13 @@ from botbuilder.dialogs import (
     WaterfallDialog,
     DialogTurnResult,
 )
+from botbuilder.core import StatePropertyAccessor
 
 
 class Start(ComponentDialog):
-    def __init__(self):
+    def __init__(self, user_profile_accessor: StatePropertyAccessor):
         super().__init__(self.__name__)
+        self.user_profile_accessor = user_profile_accessor
         self.add_dialog(WaterfallDialog(WaterfallDialog.__name__), [self.start])
 
     async def start(self, step_context: WaterfallStepContext) -> DialogTurnResult:

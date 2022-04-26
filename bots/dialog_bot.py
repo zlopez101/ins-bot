@@ -21,10 +21,7 @@ class DialogBot(ActivityHandler):
     """
 
     def __init__(
-        self,
-        conversation_state: ConversationState,
-        user_state: UserState,
-        # conversation_reference: Dict[str, ConversationReference],
+        self, conversation_state: ConversationState, user_state: UserState,
     ):
         if conversation_state is None:
             raise TypeError(

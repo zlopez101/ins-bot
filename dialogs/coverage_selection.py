@@ -85,6 +85,8 @@ class Coverage_Selection(BaseDialog):
     async def confirm_payer_selection(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
+        print(step_context.result)
+        print(dir(step_context.result))
         if step_context.result.value.startswith("Show the next"):
             # await step_context.context.send_activity(MessageFactory.text("Here are the next 5 payers"))
             step_context.values["end"] += 4

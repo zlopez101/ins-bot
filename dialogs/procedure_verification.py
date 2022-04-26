@@ -1,5 +1,7 @@
 """This module holds the Procedure_Verification_Dialog class."""
-
+from multiprocessing.sharedctypes import Value
+import string
+from typing import List
 from botbuilder.dialogs import (
     WaterfallDialog,
     WaterfallStepContext,
@@ -13,12 +15,11 @@ from botbuilder.dialogs.prompts import (
     PromptOptions,
 )
 from botbuilder.core import MessageFactory, StatePropertyAccessor
-
-from . import checker
+import checker
 
 from dialogs.base_dialog import BaseDialog
 from dialogs.coverage_selection import Coverage_Selection
-
+from models.api import CPT_code
 import api
 
 
@@ -39,6 +40,7 @@ class Procedure_Verification_Dialog(BaseDialog):
                 ],
             )
         )
+
         self.add_dialog(TextPrompt(TextPrompt.__name__))
         self.add_dialog(NumberPrompt(NumberPrompt.__name__))
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
@@ -46,7 +48,7 @@ class Procedure_Verification_Dialog(BaseDialog):
 
         self.add_dialog(Coverage_Selection(user_profile_accessor))
         self.initial_dialog_id = WaterfallDialog.__name__
-        self.description = "Check if a vaccine is covered in the office"
+        self.description = "Check if a procedure is covered in the office"
         self.help_url = "https://insurance-verification.notion.site/Is-the-procedure-covered-by-insurance-0e8141473bd44ce7ba27432f09766628"
 
     async def call_coverage_selection(
@@ -57,6 +59,7 @@ class Procedure_Verification_Dialog(BaseDialog):
 
     async def cpt_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         """Ask for Procedure code to check"""
+        step_context.values["coverage"] = step_context.result
         return await step_context.prompt(
             TextPrompt.__name__,
             PromptOptions(
@@ -70,71 +73,64 @@ class Procedure_Verification_Dialog(BaseDialog):
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
         """Confirms with user that the correct code was selected"""
-        async with self.session as session:
-            cpt_code = await api.coverages.get_cpt_code_by_code(
-                session, step_context.result
-            )
-        # if the API call was successful
-        if cpt_code:
-            self.conversation_state.cpt_code = cpt_code
-
+        codes = validate_procedure_code(step_context.result)
+        if codes:
+            async with self.session as session:
+                api_codes: List[CPT_code] = []
+                for code in codes:
+                    result, _ = await api.codes.get_cpt_code_by_code(session, code)
+                    api_codes.append(result[0])
+            if len(api_codes) > 1:
+                msg = f"You are checking if the procedure codes {', '.join([code.code for code in api_codes])} are covered by {step_context.values['coverage'].insurance_name}. Is this correct?"
+            else:
+                msg = f"You are checking if the procedure code {api_codes[0].code} is covered by {step_context.values['coverage'].insurance_name}. Is this correct?"
+            step_context.values["api_codes"] = api_codes
             return await step_context.prompt(
-                ConfirmPrompt.__name__,
-                PromptOptions(
-                    prompt=MessageFactory.text(
-                        f"You are checking if the procedure code {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is covered by {self.conversation_state.coverage.insurance_name}. Is this correct?"
-                    )
-                ),
+                ConfirmPrompt.__name__, PromptOptions(prompt=MessageFactory.text(msg)),
             )
         else:
             await step_context.context.send_activity(
                 MessageFactory.text(
-                    f"{step_context.result} code is not found in the database"
+                    f'Your codes "{step_context.result} were formatted incorrectly. Please enter as a comma separated list'
                 )
             )
-            return await step_context.replace_dialog(WaterfallDialog.__name__)
+            await step_context.replace_dialog(WaterfallDialog.__name__)
 
     async def inquiry_results_step(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
         """Display inquiry results"""
         if step_context.result:  # the code/insurance combo is correct
-            if checker.check_cpt_code_insurance_age_combination(
-                self.conversation_state.cpt_code, self.conversation_state.coverage
-            ):
-                await step_context.context.send_activity(
-                    MessageFactory.text(
-                        # f"The cpt code {result['code']} is {result['covered?']} by the insurance {result['insurance']}.{result.get('explanation', '')} To query another insurance and cpt code combination, send me a message. Thanks!"
-                        f"Yes, the vaccine {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is covered by {self.conversation_state.coverage.insurance_name}."
+            for code in step_context.values["api_codes"]:
+                if checker.check_cpt_code_insurance_age_combination(
+                    code, step_context.values["coverage"]
+                ):
+                    await step_context.context.send_activity(
+                        MessageFactory.text(
+                            # f"The cpt code {result['code']} is {result['covered?']} by the insurance {result['insurance']}.{result.get('explanation', '')} To query another insurance and cpt code combination, send me a message. Thanks!"
+                            f"Yes, the procedure {code.name} (CPT {code.code}) is covered by {step_context.values['coverage'].insurance_name}."
+                        )
                     )
-                )
-            else:  # there is some exception
-                await step_context.context.send_activity(
-                    MessageFactory.text(
-                        f"No, the vaccine {self.conversation_state.cpt_code.name} (CPT {self.conversation_state.cpt_code.code}) is **NOT** covered by {self.conversation_state.coverage.insurance_name}."
+                else:  # there is some exception
+                    await step_context.context.send_activity(
+                        MessageFactory.text(
+                            f"No, the procedure {code.name} (CPT {code.code}) is **NOT** covered by {step_context.values['coverage'].insurance_name}."
+                        )
                     )
-                )
+        return await step_context.end_dialog()
 
-            # check again
-            return await step_context.prompt(
-                ConfirmPrompt.__name__,
-                PromptOptions(
-                    prompt=MessageFactory.text(
-                        "Do you want to lookup if another code is covered?"
-                    )
-                ),
-            )
 
-        else:
-            return await step_context.prompt(
-                ConfirmPrompt.__name__,
-                PromptOptions(
-                    prompt=MessageFactory.text("Ok! Would you like to try again?")
-                ),
-            )
+def validate_procedure_code(raw_codes_entered: str) -> List[str]:
+    """Validate each code entered
 
-    async def finish_combination(
-        self, step_context: WaterfallStepContext
-    ) -> DialogTurnResult:
-        pass
+    Args:
+        raw_codes_entered (str): should be a string of comma separated codes
+
+    Returns:
+        List[str]: Procedure codes list
+    """
+    try:
+        return [int(code) for code in raw_codes_entered.split(",")]
+    except ValueError:
+        return None
 

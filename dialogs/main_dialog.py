@@ -15,7 +15,7 @@ from botbuilder.dialogs.prompts import (
 from botbuilder.dialogs.choices import Choice
 from botbuilder.core import MessageFactory, StatePropertyAccessor
 from dialogs.base_dialog import BaseDialog
-
+from dialogs.procedure_verification import Procedure_Verification_Dialog
 from dialogs.vaccine_verification import Vaccine_Verification_Dialog
 from dialogs.referral_required import Referral_Required_Dialog
 from dialogs.user_profile import User_Profile_Dialog
@@ -71,6 +71,7 @@ class MainDialog(BaseDialog):
             [
                 Referral_Required_Dialog,
                 Vaccine_Verification_Dialog,
+                Procedure_Verification_Dialog,
                 Provider_Network_Status,
                 User_Profile_Dialog,
             ]
@@ -151,9 +152,9 @@ class MainDialog(BaseDialog):
             await step_context.context.send_activity(
                 MessageFactory.text(
                     """Quick Tip: you can: \n
-                    * cancel any workflow by sending the message "`cancel`"\n
-                    * see the reference documentation for the workflow with message "`help`"\n
-                    * or get a member of the CIT to help with "`agent`"
+* cancel any workflow by sending the message "`cancel`"\n
+* see the reference documentation for the workflow with message "`help`"\n
+* or get a member of the CIT to help with "`agent`"
                     """
                 )
             )

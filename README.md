@@ -1,6 +1,6 @@
 # Ins-bot
 
-This is a microsoft teams bot built for handling insurance verification workflows that are commonly requested from clinics. These tasks are often repetitive, and involve simple lookups on previously gathered information that a bot should be able to reference without human supervision. Give me a try [here]()!
+This is a microsoft teams bot built for handling insurance verification workflows that are commonly requested from clinics. These tasks are often repetitive, and involve simple lookups on previously gathered information that a bot should be able to reference without human supervision. Give me a try [here](https://teams.microsoft.com/l/chat/0/0?users=28:2a896a89-7bd3-4e9f-a939-f8754d5737b2)!
 
 ## How does the bot work?
 
@@ -9,8 +9,6 @@ The bot is running in an Azure Python Web App. The app has /api/messages endpoin
 ## Who are my customers?
 
 End-users would be PAR, MA, RN, or other clinic staff handling insurance-related tasks.
-
-##
 
 ## Deploy the bot to Azure if your name is Zach
 

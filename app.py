@@ -101,6 +101,21 @@ async def messages(req: Request) -> Response:
     return Response(status=HTTPStatus.OK)
 
 
+async def sending_request(req: Request) -> Response:
+    # secondary bot message handler
+    if "application/json" in req.headers["Content-Type"]:
+        body = await req.json()
+    else:
+        return Response(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+
+    activity = Activity().deserialize(body)
+    auth_header = req.headers["Authorization"] if "Authorization" in req.headers else ""
+    response = await ADAPTER.process_activity(activity, auth_header, BOT.on_turn)
+    if response:
+        return json_response(data=response.body, status=response.status)
+    return Response(status=HTTPStatus.OK)
+
+
 async def home_handler(req: Request) -> Response:
     req.query
     return Response(body="Hello World! Logging configured")
@@ -123,7 +138,7 @@ async def notify(request: Request):
         await ADAPTER.continue_conversation(
             reference,
             lambda turn_context: turn_context.send_activity(
-                f'{params["location"]}: {params["mrn"]}. {params["requestor"]} says: "{params["message"]}"'
+                f'**{params["location"]}**: MRN: **{params["mrn"]}**. {params["requestor"]} says: "{params["message"]}"'
             ),
             CONFIG.APP_ID,
         )
